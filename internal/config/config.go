@@ -4,6 +4,7 @@ import (
 	"ricerise/internal/logger"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/samber/do/v2"
 	"github.com/spf13/viper"
 )
 
@@ -29,9 +30,7 @@ func (c *AppConfig) validate() error {
 	return validator.New().Struct(c)
 }
 
-var cfg *AppConfig
-
-func init() {
+func New(_ do.Injector) (*AppConfig, error) {
 	v := viper.New()
 	v.AddConfigPath(".")
 	v.SetConfigName(".env")
@@ -54,9 +53,5 @@ func init() {
 		panic(err)
 	}
 
-	cfg = &config
-}
-
-func Get() *AppConfig {
-	return cfg
+	return &config, nil
 }
