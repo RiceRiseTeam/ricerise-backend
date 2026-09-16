@@ -33,6 +33,7 @@ func (c *AppConfig) validate() error {
 func New(_ do.Injector) (*AppConfig, error) {
 	v := viper.New()
 	v.AddConfigPath(".")
+	v.AddConfigPath("..")
 	v.SetConfigName(".env")
 	v.SetConfigType("env")
 	v.AutomaticEnv()
