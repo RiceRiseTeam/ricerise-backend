@@ -2,6 +2,7 @@ package router
 
 import (
 	"ricerise/internal/handler"
+	"ricerise/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do/v2"
@@ -12,8 +13,18 @@ type Router interface {
 }
 
 func New(injector do.Injector) (*gin.Engine, error) {
-	engine := gin.Default()
-	api := engine.Group("/api")
+	engine := gin.New()
+
+	engine.Use(gin.Logger())
+	engine.Use(gin.Recovery())
+
+	errorMiddleware := do.MustInvoke[*middleware.ErrorMiddleware](injector)
+	authMiddleware := do.MustInvoke[*middleware.AuthMiddleware](injector)
+	engine.Use(authMiddleware.Handle)
+	engine.Use(errorMiddleware.Handle)
+
+	api := engine.Group("/api/v1")
+
 	userHandler := do.MustInvoke[*handler.UserHandler](injector)
 	userHandler.RegisterRouters(api)
 	return engine, nil
