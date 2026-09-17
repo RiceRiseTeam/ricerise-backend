@@ -30,26 +30,6 @@ func Error(err *apperror.AppError) *CommonResponse {
 	}
 }
 
-var (
-	FatalError = &CommonResponse{
-		Code:    50000,
-		Message: "internal server error",
-		Data:    nil,
-	}
-
-	ValidationError = &CommonResponse{
-		Code:    40000,
-		Message: "参数校验失败",
-		Data:    nil,
-	}
-
-	AuthError = &CommonResponse{
-		Code:    40100,
-		Message: "未登录或令牌失效",
-		Data:    nil,
-	}
-)
-
 func RouteWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var req T

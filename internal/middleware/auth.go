@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"ricerise/internal/apperror"
 	"ricerise/internal/config"
 	"ricerise/internal/dto"
 	"strings"
@@ -39,16 +40,27 @@ const (
 	refreshType TokenType = "refresh"
 )
 
-func (a AuthMiddleware) Handle(context *gin.Context) {
+func (a AuthMiddleware) CreateHandler(level int) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		a.handle(context, level)
+	}
+}
+
+func (a AuthMiddleware) handle(context *gin.Context, expectPermission int) {
 	header := context.GetHeader("Authorization")
 	if header == "" {
-		context.AbortWithStatusJSON(200, dto.AuthError)
+		context.AbortWithStatusJSON(200, dto.Error(apperror.NoAccessTokenError))
 		return
 	}
 
 	userInfo := a.parseToken(strings.TrimPrefix(header, "Bearer "), accessType)
 	if userInfo == nil {
-		context.AbortWithStatusJSON(200, dto.AuthError)
+		context.AbortWithStatusJSON(200, dto.Error(apperror.NoAccessTokenError))
+		return
+	}
+
+	if expectPermission >= 0 && userInfo.PermissionLevel < expectPermission {
+		context.AbortWithStatusJSON(200, dto.Error(apperror.NoPermissionError))
 		return
 	}
 

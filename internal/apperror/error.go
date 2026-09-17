@@ -14,7 +14,17 @@ var InternalServerError = &AppError{
 	Message: "Internal Server Error",
 }
 
+var ValidationError = &AppError{
+	Code:    40000,
+	Message: "参数校验失败",
+}
+
 // 401 鉴权问题
+
+var NoAccessTokenError = &AppError{
+	Code:    40100,
+	Message: "未登录或登录已过期",
+}
 
 var NoRefreshTokenError = &AppError{
 	Code:    40101,

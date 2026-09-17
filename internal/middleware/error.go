@@ -14,7 +14,11 @@ import (
 type ErrorMiddleware struct {
 }
 
-func (mw ErrorMiddleware) Handle(context *gin.Context) {
+func (mw ErrorMiddleware) CreateHandler() gin.HandlerFunc {
+	return mw.handle
+}
+
+func (mw ErrorMiddleware) handle(context *gin.Context) {
 	context.Next()
 	if len(context.Errors) == 0 {
 		return
@@ -37,12 +41,12 @@ func (mw ErrorMiddleware) Handle(context *gin.Context) {
 
 	var vError validator.ValidationErrors
 	if errors.As(lastErr.Err, &vError) {
-		context.JSON(200, dto.ValidationError)
+		context.JSON(200, dto.Error(apperror.ValidationError))
 		return
 	}
 
 	logger.Error("Error when handling request: %w", lastErr)
-	context.JSON(200, dto.FatalError)
+	context.JSON(200, dto.Error(apperror.InternalServerError))
 }
 
 func NewErrorMiddleware(_ do.Injector) (*ErrorMiddleware, error) {
