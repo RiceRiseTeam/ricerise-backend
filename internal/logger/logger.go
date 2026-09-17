@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -36,9 +37,8 @@ func (h loggerHandler) Handle(_ context.Context, record slog.Record) error {
 	builder.WriteString("] ")
 
 	if h.level <= slog.LevelDebug {
-		builder.WriteByte('(')
-		builder.WriteString(getSourceFile(record.PC))
-		builder.WriteString(") ")
+		builder.WriteString(getSourceFile())
+		builder.WriteString(" ")
 	}
 
 	builder.WriteString(record.Time.Format(time.DateTime))
@@ -61,16 +61,9 @@ func (h loggerHandler) WithGroup(_ string) slog.Handler {
 	return h
 }
 
-func getSourceFile(pc uintptr) string {
-	if pc == 0 {
-		return "unknown.go"
-	}
-	frames := runtime.CallersFrames([]uintptr{pc})
-	frame, _ := frames.Next()
-	if frame.File == "" {
-		return "unknown.go"
-	}
-	return filepath.Base(frame.File)
+func getSourceFile() string {
+	_, file, line, _ := runtime.Caller(5)
+	return filepath.Base(file) + ":" + strconv.Itoa(line)
 }
 
 func init() {
