@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"ricerise/internal/cache"
 	"ricerise/internal/config"
 	"ricerise/internal/database"
 	"ricerise/internal/handler"
@@ -26,11 +27,13 @@ func init() {
 	// 基础设施
 	do.Provide(root, config.New)
 	do.Provide(root, database.NewMySQL)
+	do.Provide(root, cache.NewRedis)
 	// Repo 层
 	do.Provide(root, repository.NewUserRepository)
 
 	// Service 层
 	do.Provide(root, service.NewUserService)
+	do.Provide(root, service.NewCacheService)
 
 	// Handler 层
 	do.Provide(root, handler.NewUserHandler)
