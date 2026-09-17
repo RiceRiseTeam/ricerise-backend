@@ -1,11 +1,12 @@
 package dto
 
 import (
-	"net/http"
 	"ricerise/internal/apperror"
 
 	"github.com/gin-gonic/gin"
 )
+
+type Empty struct{}
 
 type CommonResponse struct {
 	Code    int         `json:"code"`
@@ -15,7 +16,7 @@ type CommonResponse struct {
 
 func Success(data any) *CommonResponse {
 	return &CommonResponse{
-		Code:    http.StatusOK,
+		Code:    0,
 		Message: "success",
 		Data:    data,
 	}
@@ -31,19 +32,19 @@ func Error(err *apperror.AppError) *CommonResponse {
 
 var (
 	FatalError = &CommonResponse{
-		Code:    http.StatusInternalServerError,
+		Code:    50000,
 		Message: "internal server error",
 		Data:    nil,
 	}
 
 	ValidationError = &CommonResponse{
-		Code:    http.StatusBadRequest,
+		Code:    40000,
 		Message: "参数校验失败",
 		Data:    nil,
 	}
 
 	AuthError = &CommonResponse{
-		Code:    http.StatusUnauthorized,
+		Code:    40100,
 		Message: "未登录或令牌失效",
 		Data:    nil,
 	}
@@ -52,13 +53,19 @@ var (
 func RouteWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var req T
-		err := ctx.ShouldBindJSON(&req)
-		if err != nil {
-			_ = ctx.Error(err)
-			return
+		var result any
+		switch any(req).(type) {
+		case Empty:
+			result = input(ctx, req)
+		default:
+			err := ctx.ShouldBindJSON(&req)
+			if err != nil {
+				_ = ctx.Error(err)
+				return
+			}
+			result = input(ctx, req)
 		}
 
-		result := input(ctx, req)
 		if result != nil {
 			ctx.JSON(200, result)
 		}
