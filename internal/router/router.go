@@ -19,8 +19,6 @@ func New(injector do.Injector) (*gin.Engine, error) {
 	engine.Use(gin.Recovery())
 
 	errorMiddleware := do.MustInvoke[*middleware.ErrorMiddleware](injector)
-	authMiddleware := do.MustInvoke[*middleware.AuthMiddleware](injector)
-	engine.Use(authMiddleware.Handle)
 	engine.Use(errorMiddleware.Handle)
 
 	api := engine.Group("/api/v1")

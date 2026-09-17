@@ -22,8 +22,9 @@ type AppConfig struct {
 	AIBaseURL string `mapstructure:"AI_BASE_URL" validate:"required"`
 	AIToken   string `mapstructure:"AI_TOKEN"    validate:"required"`
 
-	JWTSecret string `mapstructure:"JWT_SECRET" validate:"required,min=32"`
-	JWTExpire int    `mapstructure:"JWT_EXPIRE" validate:"required"`
+	JWTSecret          string `mapstructure:"JWT_SECRET" validate:"required,min=32"`
+	AccessTokenExpire  int    `mapstructure:"ACCESS_TOKEN_EXPIRE" validate:"required"`
+	RefreshTokenExpire int    `mapstructure:"REFRESH_TOKEN_EXPIRE" validate:"required"`
 }
 
 func (c *AppConfig) validate() error {
