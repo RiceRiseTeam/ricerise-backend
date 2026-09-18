@@ -68,6 +68,10 @@ func (a AuthMiddleware) handle(context *gin.Context, expectPermission int) {
 }
 
 func (a AuthMiddleware) ParseRefreshToken(token string) *TokenInfo {
+	return a.parseToken(token, refreshType)
+}
+
+func (a AuthMiddleware) ParseAccessToken(token string) *TokenInfo {
 	return a.parseToken(token, accessType)
 }
 

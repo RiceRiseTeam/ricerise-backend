@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"ricerise/internal/apperror"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
@@ -8,6 +10,7 @@ import (
 	"ricerise/internal/middleware"
 	"ricerise/internal/service"
 
+	sse "github.com/dan-sherwin/go-sse"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do/v2"
 )
@@ -18,6 +21,8 @@ type UserHandler struct {
 }
 
 func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
+	router.GET("/sse", h.SSE)
+
 	auth := router.Group("/auth")
 	auth.POST("/register", dto.RouteWithDto(h.Register))
 	auth.POST("/login", dto.RouteWithDto(h.Login))
@@ -60,6 +65,28 @@ func (h UserHandler) Refresh(context *gin.Context) {
 	if err != nil {
 		_ = context.Error(err)
 	}
+}
+
+func (h UserHandler) SSE(context *gin.Context) {
+	accessToken, err := context.Cookie("access_token")
+	if err != nil {
+		_ = context.Error(apperror.NoAccessTokenError)
+		return
+	}
+	info := h.authMiddleware.ParseAccessToken(accessToken)
+	if info == nil {
+		_ = context.Error(apperror.NoAccessTokenError)
+		return
+	}
+
+	// 生成session 随机字符串
+	session := make([]byte, 16)
+	if _, err = rand.Read(session); err != nil {
+		_ = context.Error(err)
+		return
+	}
+
+	sse.NewSessionWithUID(context, hex.EncodeToString(session), info.Username)
 }
 
 func NewUserHandler(injector do.Injector) (*UserHandler, error) {

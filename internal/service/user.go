@@ -96,10 +96,33 @@ func (h UserService) Logout(context *gin.Context) {
 }
 
 func (h UserService) setRefreshToken(context *gin.Context, refreshToken string) {
+	var expire int
+	if refreshToken == "" {
+		expire = -1
+	} else {
+		expire = h.appConfig.RefreshTokenExpire
+	}
 	context.SetCookie("refresh_token",
 		refreshToken,
-		h.appConfig.AccessTokenExpire,
-		"/",
+		expire,
+		"/api/v1/auth/refresh",
+		"", // 默认行为 不包括子域名 只有当前域名
+		true,
+		true,
+	)
+}
+
+func (h UserService) setAccessToken(context *gin.Context, accessToken string) {
+	var expire int
+	if accessToken == "" {
+		expire = -1
+	} else {
+		expire = h.appConfig.AccessTokenExpire
+	}
+	context.SetCookie("access_token",
+		accessToken,
+		expire,
+		"/api/v1/sse",
 		"", // 默认行为 不包括子域名 只有当前域名
 		true,
 		true,
