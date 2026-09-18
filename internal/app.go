@@ -30,6 +30,9 @@ func init() {
 	do.Provide(root, cache.NewRedis)
 	// Repo 层
 	do.Provide(root, repository.NewUserRepository)
+	do.Provide(root, repository.NewDinnerRepository)
+	do.Provide(root, repository.NewLocationRepository)
+	do.Provide(root, repository.NewParticipantRepository)
 
 	// Service 层
 	do.Provide(root, service.NewCacheService)
