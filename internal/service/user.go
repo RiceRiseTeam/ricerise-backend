@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do/v2"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -21,9 +22,17 @@ type UserService struct {
 }
 
 func (h UserService) Register(context *gin.Context, request *request.UserRegisterRequest) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(request.Password), 12)
+	if err != nil {
+		_ = context.Error(err)
+		return err
+	}
+
 	newUser := &model.UserModel{
 		Username: request.UserName,
-		Password: request.Password,
+		Nickname: request.NickName,
+		Email:    request.Email,
+		Password: string(hash),
 	}
 	if err := h.repo.Create(context.Request.Context(), newUser); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
@@ -40,7 +49,6 @@ func (h UserService) Register(context *gin.Context, request *request.UserRegiste
 func (h UserService) Login(context *gin.Context, request *request.UserLoginRequest) (string, error) {
 	user, err := h.repo.FindBy(context.Request.Context(), &model.UserModel{
 		Username: request.UserID,
-		Password: request.Password,
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -49,6 +57,12 @@ func (h UserService) Login(context *gin.Context, request *request.UserLoginReque
 		}
 
 		_ = context.Error(err)
+		return "", err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
+	if err != nil {
+		_ = context.Error(apperror.AccountPasswordError)
 		return "", err
 	}
 
@@ -92,7 +106,8 @@ func (h UserService) Refresh(context *gin.Context, oldToken string) error {
 }
 
 func (h UserService) Logout(context *gin.Context) {
-
+	h.setRefreshToken(context, "")
+	h.setAccessToken(context, "")
 }
 
 func (h UserService) setRefreshToken(context *gin.Context, refreshToken string) {

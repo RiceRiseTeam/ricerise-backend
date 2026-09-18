@@ -32,11 +32,15 @@ func init() {
 	do.Provide(root, repository.NewUserRepository)
 
 	// Service 层
-	do.Provide(root, service.NewUserService)
 	do.Provide(root, service.NewCacheService)
+	do.Provide(root, service.NewUserService)
+	do.Provide(root, service.NewAdminService)
+	do.Provide(root, service.NewMapService)
 
 	// Handler 层
 	do.Provide(root, handler.NewUserHandler)
+	do.Provide(root, handler.NewAdminHandler)
+	do.Provide(root, handler.NewMapHandler)
 
 	// 中间件
 	do.Provide(root, middleware.NewErrorMiddleware)

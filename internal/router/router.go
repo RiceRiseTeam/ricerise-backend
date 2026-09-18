@@ -25,5 +25,12 @@ func New(injector do.Injector) (*gin.Engine, error) {
 
 	userHandler := do.MustInvoke[*handler.UserHandler](injector)
 	userHandler.RegisterRouters(api)
+
+	adminHandler := do.MustInvoke[*handler.AdminHandler](injector)
+	adminHandler.RegisterRouters(api)
+
+	mapHandler := do.MustInvoke[*handler.MapHandler](injector)
+	mapHandler.RegisterRouters(api)
+
 	return engine, nil
 }

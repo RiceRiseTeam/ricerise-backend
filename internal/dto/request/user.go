@@ -1,7 +1,7 @@
 package request
 
 type UserRegisterRequest struct {
-	UserName string `json:"username" binding:"required,min=8,max=64"`
+	UserName string `json:"username" binding:"required,alphanum,min=8,max=64"`
 	NickName string `json:"nickname" binding:"required,min=8,max=64"`
 	Password string `json:"password" binding:"required,min=12,max=32"`
 	Email    string `json:"email" binding:"required,email"`

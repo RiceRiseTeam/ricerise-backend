@@ -43,7 +43,12 @@ func NewMySQL(injector do.Injector) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	sqlDB.SetConnMaxIdleTime(time.Minute * 30)
 
-	err = db.AutoMigrate(&model.UserModel{})
+	err = db.AutoMigrate(
+		&model.UserModel{},
+		&model.LocationModel{},
+		&model.CommentModel{},
+		&model.DinnerModel{},
+	)
 	if err != nil {
 		panic("failed to auto migrate mysql model: " + err.Error())
 	}
