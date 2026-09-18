@@ -19,7 +19,7 @@ func New(injector do.Injector) (*gin.Engine, error) {
 	engine.Use(gin.Recovery())
 
 	errorMiddleware := do.MustInvoke[*middleware.ErrorMiddleware](injector)
-	engine.Use(errorMiddleware.Handle)
+	engine.Use(errorMiddleware.CreateHandler())
 
 	api := engine.Group("/api/v1")
 

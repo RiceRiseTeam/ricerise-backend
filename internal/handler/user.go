@@ -29,7 +29,7 @@ func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
 	auth.POST("/refresh", h.Refresh)
 
 	api := router.Group("/user")
-	api.Use(h.authMiddleware.Handle)
+	api.Use(h.authMiddleware.CreateHandler(h.authMiddleware.UserLevel))
 	api.POST("/logout", dto.RouteWithDto(h.Logout))
 }
 

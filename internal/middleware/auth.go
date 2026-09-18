@@ -19,9 +19,19 @@ type TokenInfo struct {
 	TokenType       TokenType
 }
 
+type PermissionLevel int
+
 type AuthMiddleware struct {
 	appConfig *config.AppConfig
 	secret    []byte
+
+	/*  实际上 AuthMiddleware 更像是 中间件和Token Manager 的结合体
+	这里这样写是因为我不想让Level 的调用是middleware.XXXLevel
+	搞个auth 包会更好 但这样就又得拆中间件的功能 就这样吧
+	*/
+	UserLevel  PermissionLevel
+	AdminLevel PermissionLevel
+	OwnerLevel PermissionLevel
 }
 
 type TokenType string
@@ -40,13 +50,13 @@ const (
 	refreshType TokenType = "refresh"
 )
 
-func (a AuthMiddleware) CreateHandler(level int) gin.HandlerFunc {
+func (a AuthMiddleware) CreateHandler(level PermissionLevel) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		a.handle(context, level)
 	}
 }
 
-func (a AuthMiddleware) handle(context *gin.Context, expectPermission int) {
+func (a AuthMiddleware) handle(context *gin.Context, expectPermission PermissionLevel) {
 	header := context.GetHeader("Authorization")
 	if header == "" {
 		context.AbortWithStatusJSON(200, dto.Error(apperror.NoAccessTokenError))
@@ -59,7 +69,7 @@ func (a AuthMiddleware) handle(context *gin.Context, expectPermission int) {
 		return
 	}
 
-	if expectPermission >= 0 && userInfo.PermissionLevel < expectPermission {
+	if expectPermission >= 0 && userInfo.PermissionLevel < int(expectPermission) {
 		context.AbortWithStatusJSON(200, dto.Error(apperror.NoPermissionError))
 		return
 	}
@@ -140,7 +150,10 @@ func (a AuthMiddleware) GetUserInfo(context *gin.Context) *TokenInfo {
 func NewAuthMiddleware(injector do.Injector) (*AuthMiddleware, error) {
 	appConfig := do.MustInvoke[*config.AppConfig](injector)
 	return &AuthMiddleware{
-		appConfig: appConfig,
-		secret:    []byte(appConfig.JWTSecret),
+		appConfig:  appConfig,
+		secret:     []byte(appConfig.JWTSecret),
+		UserLevel:  0,
+		AdminLevel: 1,
+		OwnerLevel: 2,
 	}, nil
 }
