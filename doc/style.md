@@ -4,6 +4,10 @@
 
 [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments)
 
+汲取Python Flask/Java Spring Boot 的部分风格 
+
+通过将样板代码封装成工具方法等多种方式 尽可能避免书写过多样板代码
+
 ## 1. 命名
 
 尽量不使用缩写/单字母变量 除非与导入包名冲突等特殊情况
@@ -32,3 +36,19 @@
 ### 3.1 错误消息
 - 严重Panic 应当使用英文描述错误信息 如果有场景上下文可以在panic 前添加错误日志
 - 普通Err 应当尽可能通过日志打印 并且使用中文描述错误信息
+
+## 4. 项目架构
+
+### 4.1 分层
+
+```
+Handler/DTO 
+
+Service
+
+Repository
+
+DataBase
+```
+- 其中DTO 可以在Handler 和Service 层双向传递 但不应再由Service 向基础设施传递 应当在Service 拆包
+- DTO 作为和前端的协议约定 使用Swagger 或类似工具生成API 文档和前端对接
