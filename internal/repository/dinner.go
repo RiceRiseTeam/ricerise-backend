@@ -20,3 +20,8 @@ func NewDinnerRepository(injector do.Injector) (*DinnerRepository, error) {
 		db:             db,
 	}, nil
 }
+
+func (h DinnerRepository)ListParticipant(context context.Context, id int64) (*DinnerModel, error) {
+	return h.FindByIDA(context, id, func(db *gorm.DB) *gorm.DB {
+		return db.Select("User")}).Preload("UserId")
+}
