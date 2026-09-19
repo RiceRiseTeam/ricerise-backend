@@ -48,6 +48,7 @@ func NewMySQL(injector do.Injector) (*gorm.DB, error) {
 		&model.LocationModel{},
 		&model.CommentModel{},
 		&model.DinnerModel{},
+		&model.ParticipantModel{},
 	)
 	if err != nil {
 		panic("failed to auto migrate mysql model: " + err.Error())

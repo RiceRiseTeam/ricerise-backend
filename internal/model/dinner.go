@@ -3,8 +3,7 @@ package model
 import "time"
 
 type DinnerModel struct {
-	ID uint64 `gorm:"primary_key"`
-
+	ID         uint64        `gorm:"primary_key"`
 	LocationId uint64        `gorm:"not null"`
 	Location   LocationModel `gorm:"foreignkey:LocationId"`
 	HostId     uint64        `gorm:"not null"`

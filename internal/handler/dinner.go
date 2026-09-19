@@ -1,9 +1,6 @@
 package handler
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"ricerise/internal/apperror"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
 	"ricerise/internal/dto/response"
@@ -15,31 +12,67 @@ import (
 )
 
 type DinnerHandler struct {
-	appConfig      *config.AppConfig
+	dinnerService *service.DinnerService
+	auth          *middleware.AuthMiddleware
 }
 
-func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
+func (h DinnerHandler) RegisterRouters(router *gin.RouterGroup) {
 	api := router.Group("/dinner")
-	api.POST("/list", dto.RouteWithDto(h.list))
+	api.GET("/list", dto.RouteWithDto(h.ListDinner))
+	api.POST("/likefind", dto.RouteWithDto(h.LikeFind))
+	api.GET("/:id/participants", h.ListParticipant)
+	api.POST("/newparticipate", dto.RouteWithDto(h.NewParticipate))
 }
 
-func (h DinnerHandler) List(context *gin.Context) any{
-	if err := h.repo.FindAllByA(context Request.Context(), &model.DinnerModel{
-		Status: 0,
+func (h DinnerHandler) ListDinner(ctx *gin.Context, _ dto.Empty) any {
+	result, err := h.dinnerService.List(ctx.Request.Context())
+	if err != nil {
+		_ = ctx.Error(err)
+		return nil
 	}
-	); err == nil {
-		return dto.Success(nil)
-	}
-	return nil
-
+	return dto.Success(&response.DinnerFindResponse{Result: *result})
 }
 
-func (h DinnerHandler) LikeFind(context *gin.context) any{
-	if err := h.repo.FindAllByA(context Request.Context(), &model.DinnerModel{
-		Location: request.LocationName,
+func (h DinnerHandler) LikeFind(ctx *gin.Context, req request.DinnerLikeFindRequest) any {
+	result, err := h.dinnerService.LikeFind(ctx.Request.Context(), req.LocationName)
+	if err != nil {
+		_ = ctx.Error(err)
+		return nil
 	}
-	); err == nil {
-		return dto.Success(nil)
+	return dto.Success(&response.DinnerFindResponse{Result: *result})
+}
+
+func (h DinnerHandler) ListParticipant(ctx *gin.Context) {
+	var uri struct {
+		ID uint64 `uri:"id" binding:"required"`
 	}
-	return nil
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+	result, err := h.dinnerService.ListParticipant(ctx.Request.Context(), uri.ID)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+	ctx.JSON(200, dto.Success(&response.ParticipantFindResponse{Result: *result}))
+}
+
+func (h DinnerHandler) NewParticipate(ctx *gin.Context, req request.NewParticipateRequest) any {
+	info := h.auth.GetUserInfo(ctx)
+	if info == nil {
+		return nil
+	}
+	if err := h.dinnerService.NewParticipate(ctx.Request.Context(), info.UserId, req.DinnerID); err != nil {
+		_ = ctx.Error(err)
+		return nil
+	}
+	return dto.Success(nil)
+}
+
+func NewDinnerHandler(injector do.Injector) (*DinnerHandler, error) {
+	return &DinnerHandler{
+		dinnerService: do.MustInvoke[*service.DinnerService](injector),
+		auth:          do.MustInvoke[*middleware.AuthMiddleware](injector),
+	}, nil
 }
