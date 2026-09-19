@@ -17,9 +17,9 @@ func (r *BaseRepository[T]) Create(ctx context.Context, entity *T) error {
 	return r.db.WithContext(ctx).Create(entity).Error
 }
 
-func (r *BaseRepository[T]) FindByIdA(ctx context.Context, id int64, queryArgs QueryArgs) (*T, error) {
+func (r *BaseRepository[T]) FindByIdA(ctx context.Context, id uint64, queryArgs QueryArgs) (*T, error) {
 	var result T
-	if err := queryArgs(r.db.WithContext(ctx)).
+	if err := queryArgs(r.db.Model(new(T)).WithContext(ctx)).
 		First(&result, id).Error; err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (r *BaseRepository[T]) FindByIdA(ctx context.Context, id int64, queryArgs Q
 
 func (r *BaseRepository[T]) FindByA(ctx context.Context, where *T, queryArgs QueryArgs) (*T, error) {
 	var result T
-	if err := queryArgs(r.db.WithContext(ctx)).Where(where).First(&result).Error; err != nil {
+	if err := queryArgs(r.db.Model(new(T)).WithContext(ctx)).Where(where).First(&result).Error; err != nil {
 		return nil, err
 	}
 
@@ -38,14 +38,14 @@ func (r *BaseRepository[T]) FindByA(ctx context.Context, where *T, queryArgs Que
 
 func (r *BaseRepository[T]) FindAllByA(ctx context.Context, where *T, queryArgs QueryArgs) (*[]T, error) {
 	var results []T
-	if err := queryArgs(r.db.WithContext(ctx)).Where(where).Find(&results).Error; err != nil {
+	if err := queryArgs(r.db.Model(new(T)).WithContext(ctx)).Where(where).Find(&results).Error; err != nil {
 		return nil, err
 	}
 
 	return &results, nil
 }
 
-func (r *BaseRepository[T]) FindById(ctx context.Context, id int64) (*T, error) {
+func (r *BaseRepository[T]) FindById(ctx context.Context, id uint64) (*T, error) {
 	return r.FindByIdA(ctx, id, func(db *gorm.DB) *gorm.DB { return db })
 }
 
@@ -53,14 +53,21 @@ func (r *BaseRepository[T]) FindBy(ctx context.Context, where *T) (*T, error) {
 	return r.FindByA(ctx, where, func(db *gorm.DB) *gorm.DB { return db })
 }
 
-func (r *BaseRepository[T]) CountBy(ctx context.Context, where *T) int64 {
+func (r *BaseRepository[T]) CountBy(ctx context.Context, where *T) (int64, error) {
 	var count int64
-	r.db.WithContext(ctx).Where(where).Count(&count)
-	return count
+	err := r.db.Model(new(T)).WithContext(ctx).Where(where).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
-func (r *BaseRepository[T]) Count(ctx context.Context) int64 {
+func (r *BaseRepository[T]) Count(ctx context.Context) (int64, error) {
 	return r.CountBy(ctx, new(T))
+}
+
+func (r *BaseRepository[T]) Updates(ctx context.Context, where *T, update *T) error {
+	return r.db.Model(new(T)).WithContext(ctx).Where(where).Updates(update).Error
 }
 
 func (r *BaseRepository[T]) LikeFindBy(ctx context.Context, keyword string, fields []string, queryArgs QueryArgs,
