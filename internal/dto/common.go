@@ -52,7 +52,7 @@ func RouteJsonWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *
 	}
 }
 
-func RouteUrlWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
+func RouteQueryWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var req T
 		var result any
@@ -60,7 +60,7 @@ func RouteUrlWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *g
 		case Empty:
 			result = input(ctx, req)
 		default:
-			err := ctx.ShouldBindUri(&req)
+			err := ctx.ShouldBindQuery(&req)
 			if err != nil {
 				_ = ctx.Error(err)
 				return
@@ -72,4 +72,24 @@ func RouteUrlWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *g
 			ctx.JSON(200, result)
 		}
 	}
+}
+
+func GetUrlID(ctx *gin.Context) (uint64, error) {
+	var uri struct {
+		ID uint64 `uri:"id" binding:"required"`
+	}
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		return 0, err
+	}
+
+	return uri.ID, nil
+}
+
+// Map Java Collection.stream().map() 类似物 用于 model -> dto 之间的装包
+func Map[T, U any](array []T, mapper func(T) U) []U {
+	result := make([]U, 0, len(array))
+	for _, v := range array {
+		result = append(result, mapper(v))
+	}
+	return result
 }
