@@ -31,7 +31,7 @@ func (s DinnerService) ListParticipant(ctx context.Context, dinnerID uint64) (*[
 }
 
 func (s DinnerService) NewParticipate(ctx context.Context, userID, dinnerID uint64) error {
-	if _, err := s.dinnerRepo.FindById(ctx, int64(dinnerID)); err != nil {
+	if _, err := s.dinnerRepo.FindById(ctx, dinnerID); err != nil {
 		return err
 	}
 	return s.participantRepo.Create(ctx, &model.ParticipantModel{

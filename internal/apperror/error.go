@@ -32,13 +32,18 @@ var NoRefreshTokenError = &AppError{
 }
 
 var NoPermissionError = &AppError{
-	Code:    40402,
+	Code:    40102,
 	Message: "没有权限",
 }
 
 var AccountPasswordError = &AppError{
-	Code:    40403,
+	Code:    40103,
 	Message: "账户或密码错误",
+}
+
+var AccessNoFoundError = &AppError{
+	Code:    40400,
+	Message: "记录不存在",
 }
 
 // 409XX 冲突问题

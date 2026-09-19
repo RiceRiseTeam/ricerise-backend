@@ -16,8 +16,9 @@ type LocationRepository struct {
 
 func (l LocationRepository) FindNotReviewedOrderedByCreatedAt(ctx context.Context, pageSize int, startId *uint64, startTime *time.Time) ([]*model.LocationModel, error) {
 	var result []*model.LocationModel
+	var reviewed = false
 	query := l.db.WithContext(ctx).Where(&model.LocationModel{
-		Reviewed: false,
+		Reviewed: &reviewed,
 	})
 
 	if startId != nil && startTime != nil {

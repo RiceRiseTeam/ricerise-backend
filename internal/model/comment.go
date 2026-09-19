@@ -13,6 +13,6 @@ type CommentModel struct {
 	User       UserModel     `gorm:"foreignkey:UserId"`
 	Rating     int           `gorm:"not null"`
 	Content    string        `gorm:"type:text;not null"`
-	Reviewed   bool          `gorm:"not null;default:false"`
+	Reviewed   *bool         `gorm:"not null;default:false"`
 	CreatedAt  time.Time
 }

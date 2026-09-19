@@ -14,8 +14,6 @@ type MapHandler struct {
 }
 
 func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func NewMapHandler(injector do.Injector) (*MapHandler, error) {

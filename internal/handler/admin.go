@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"ricerise/internal/apperror"
 	"ricerise/internal/config"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/query"
@@ -25,6 +26,8 @@ func (a AdminHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.GET("/comments", dto.RouteQueryWithDto(a.GetComments)) // 获取需要审核的Comment和 Location
 	api.GET("/locations", dto.RouteQueryWithDto(a.GetLocations))
 	api.GET("/status", dto.RouteQueryWithDto(a.GetStatus))
+	api.PATCH("/comments/:id", dto.RouteQueryWithDto(a.ReviewComment))
+	api.PATCH("/locations/:id", dto.RouteQueryWithDto(a.ReviewLocation))
 }
 
 func (a AdminHandler) GetStatus(ctx *gin.Context, _ dto.Empty) any {
@@ -32,11 +35,19 @@ func (a AdminHandler) GetStatus(ctx *gin.Context, _ dto.Empty) any {
 }
 
 func (a AdminHandler) GetComments(ctx *gin.Context, query query.AdminPageQuery) any {
-	return nil
+	data, hasNext, err := a.adminService.GetCommentReviewList(ctx, query)
+	if err != nil {
+		return nil
+	}
+	return dto.Success(&response.AdminCommentReviewList{
+		PageSize: query.PageSize,
+		HasNext:  hasNext,
+		Comments: dto.Map(data, dto.NewCommentDto),
+	})
 }
 
 func (a AdminHandler) GetLocations(ctx *gin.Context, query query.AdminPageQuery) any {
-	data, hasNext, err := a.adminService.GetLocationsReviewList(ctx, query)
+	data, hasNext, err := a.adminService.GetLocationReviewList(ctx, query)
 	if err != nil {
 		return nil
 	}
@@ -47,12 +58,28 @@ func (a AdminHandler) GetLocations(ctx *gin.Context, query query.AdminPageQuery)
 	})
 }
 
-func (a AdminHandler) ReviewComment(ctx *gin.Context) any {
-	return nil
+func (a AdminHandler) ReviewComment(ctx *gin.Context, query query.AdminReviewQuery) any {
+	commentId, err := dto.GetUrlID(ctx)
+	if err != nil {
+		return dto.Error(apperror.ValidationError)
+	}
+	err = a.adminService.ReviewLocation(ctx, commentId, query.Pass)
+	if err != nil {
+		return nil
+	}
+	return dto.Success(nil)
 }
 
-func (a AdminHandler) ReviewLocation(ctx *gin.Context) any {
-	return nil
+func (a AdminHandler) ReviewLocation(ctx *gin.Context, query query.AdminReviewQuery) any {
+	locationId, err := dto.GetUrlID(ctx)
+	if err != nil {
+		return dto.Error(apperror.ValidationError)
+	}
+	err = a.adminService.ReviewLocation(ctx, locationId, query.Pass)
+	if err != nil {
+		return nil
+	}
+	return dto.Success(nil)
 }
 
 func NewAdminHandler(injector do.Injector) (*AdminHandler, error) {
