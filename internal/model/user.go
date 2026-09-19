@@ -8,6 +8,6 @@ type UserModel struct {
 	Nickname        string `gorm:"type:varchar(64);not null"`
 	Password        string `gorm:"type:varchar(256);not null"`
 	Email           string `gorm:"type:varchar(256);not null"`
-	PermissionLevel int8   `grom:"default:0;index"`
+	PermissionLevel int8   `gorm:"default:0;index"`
 	CreatedAt       time.Time
 }

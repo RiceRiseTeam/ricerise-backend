@@ -15,11 +15,11 @@ import (
 type TokenInfo struct {
 	UserId          uint64
 	Username        string
-	PermissionLevel int
+	PermissionLevel int8
 	TokenType       TokenType
 }
 
-type PermissionLevel int
+type PermissionLevel int8
 
 type AuthMiddleware struct {
 	appConfig *config.AppConfig
@@ -41,7 +41,7 @@ type TokenClaims struct {
 
 	UserId          uint64    `json:"userid"`
 	Username        string    `json:"username"`
-	PermissionLevel int       `json:"level"`
+	PermissionLevel int8      `json:"level"`
 	TokenType       TokenType `json:"type"`
 }
 
@@ -51,30 +51,30 @@ const (
 )
 
 func (a AuthMiddleware) CreateHandler(level PermissionLevel) gin.HandlerFunc {
-	return func(context *gin.Context) {
-		a.handle(context, level)
+	return func(ctx *gin.Context) {
+		a.handle(ctx, level)
 	}
 }
 
-func (a AuthMiddleware) handle(context *gin.Context, expectPermission PermissionLevel) {
-	header := context.GetHeader("Authorization")
+func (a AuthMiddleware) handle(ctx *gin.Context, expectPermission PermissionLevel) {
+	header := ctx.GetHeader("Authorization")
 	if header == "" {
-		context.AbortWithStatusJSON(200, dto.Error(apperror.NoAccessTokenError))
+		ctx.AbortWithStatusJSON(200, dto.Error(apperror.NoAccessTokenError))
 		return
 	}
 
 	userInfo := a.parseToken(strings.TrimPrefix(header, "Bearer "), accessType)
 	if userInfo == nil {
-		context.AbortWithStatusJSON(200, dto.Error(apperror.NoAccessTokenError))
+		ctx.AbortWithStatusJSON(200, dto.Error(apperror.NoAccessTokenError))
 		return
 	}
 
-	if expectPermission >= 0 && userInfo.PermissionLevel < int(expectPermission) {
-		context.AbortWithStatusJSON(200, dto.Error(apperror.NoPermissionError))
+	if expectPermission >= 0 && userInfo.PermissionLevel < int8(expectPermission) {
+		ctx.AbortWithStatusJSON(200, dto.Error(apperror.NoPermissionError))
 		return
 	}
 
-	context.Set("auth", userInfo)
+	ctx.Set("auth", userInfo)
 }
 
 func (a AuthMiddleware) ParseRefreshToken(token string) *TokenInfo {
@@ -85,15 +85,15 @@ func (a AuthMiddleware) ParseAccessToken(token string) *TokenInfo {
 	return a.parseToken(token, accessType)
 }
 
-func (a AuthMiddleware) CreateRefreshToken(userId uint64, userName string, permissionLevel int) (string, error) {
+func (a AuthMiddleware) CreateRefreshToken(userId uint64, userName string, permissionLevel int8) (string, error) {
 	return a.createToken(userId, userName, permissionLevel, refreshType)
 }
 
-func (a AuthMiddleware) CreateAccessToken(userId uint64, userName string, permissionLevel int) (string, error) {
+func (a AuthMiddleware) CreateAccessToken(userId uint64, userName string, permissionLevel int8) (string, error) {
 	return a.createToken(userId, userName, permissionLevel, accessType)
 }
 
-func (a AuthMiddleware) createToken(userId uint64, userName string, permissionLevel int, tokenType TokenType) (string, error) {
+func (a AuthMiddleware) createToken(userId uint64, userName string, permissionLevel int8, tokenType TokenType) (string, error) {
 	var expiration int
 	if tokenType == accessType {
 		expiration = a.appConfig.AccessTokenExpire
@@ -138,8 +138,8 @@ func (a AuthMiddleware) parseToken(tokenString string, expectType TokenType) *To
 }
 
 // GetUserInfo 实际上只是一个工具方法 传入gin.Context 可能显得权责不分明 但是因为GO 并没有static 方法的概念 就这么写吧
-func (a AuthMiddleware) GetUserInfo(context *gin.Context) *TokenInfo {
-	authInfo, exists := context.Get("auth")
+func (a AuthMiddleware) GetUserInfo(ctx *gin.Context) *TokenInfo {
+	authInfo, exists := ctx.Get("auth")
 	if !exists {
 		return nil
 	}
