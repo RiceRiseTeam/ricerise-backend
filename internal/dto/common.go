@@ -30,7 +30,7 @@ func Error(err *apperror.AppError) *CommonResponse {
 	}
 }
 
-func RouteWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
+func RouteJsonWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var req T
 		var result any
@@ -39,6 +39,28 @@ func RouteWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.
 			result = input(ctx, req)
 		default:
 			err := ctx.ShouldBindJSON(&req)
+			if err != nil {
+				_ = ctx.Error(err)
+				return
+			}
+			result = input(ctx, req)
+		}
+
+		if result != nil {
+			ctx.JSON(200, result)
+		}
+	}
+}
+
+func RouteUrlWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		var req T
+		var result any
+		switch any(req).(type) {
+		case Empty:
+			result = input(ctx, req)
+		default:
+			err := ctx.ShouldBindUri(&req)
 			if err != nil {
 				_ = ctx.Error(err)
 				return

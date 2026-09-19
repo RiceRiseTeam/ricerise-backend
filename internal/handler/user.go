@@ -24,13 +24,13 @@ func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
 	router.GET("/sse", h.SSE)
 
 	auth := router.Group("/auth")
-	auth.POST("/register", dto.RouteWithDto(h.Register))
-	auth.POST("/login", dto.RouteWithDto(h.Login))
+	auth.POST("/register", dto.RouteJsonWithDto(h.Register))
+	auth.POST("/login", dto.RouteJsonWithDto(h.Login))
 	auth.POST("/refresh", h.Refresh)
 
 	api := router.Group("/user")
 	api.Use(h.authMiddleware.CreateHandler(h.authMiddleware.UserLevel))
-	api.POST("/logout", dto.RouteWithDto(h.Logout))
+	api.POST("/logout", dto.RouteJsonWithDto(h.Logout))
 }
 
 func (h UserHandler) Register(ctx *gin.Context, req request.UserRegisterRequest) any {
