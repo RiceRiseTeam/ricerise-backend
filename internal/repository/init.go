@@ -53,6 +53,16 @@ func (r *BaseRepository[T]) FindBy(ctx context.Context, where *T) (*T, error) {
 	return r.FindByA(ctx, where, func(db *gorm.DB) *gorm.DB { return db })
 }
 
+func (r *BaseRepository[T]) CountBy(ctx context.Context, where *T) int64 {
+	var count int64
+	r.db.WithContext(ctx).Where(where).Count(&count)
+	return count
+}
+
+func (r *BaseRepository[T]) Count(ctx context.Context) int64 {
+	return r.CountBy(ctx, new(T))
+}
+
 func (r *BaseRepository[T]) LikeFindBy(ctx context.Context, keyword string, fields []string, queryArgs QueryArgs,
 ) (*[]T, error) {
 	var results []T
@@ -60,7 +70,7 @@ func (r *BaseRepository[T]) LikeFindBy(ctx context.Context, keyword string, fiel
 	if keyword != "" && len(fields) > 0 {
 		pattern := "%" + keyword + "%"
 		conditions := make([]string, 0, len(fields))
-		args := make([]interface{}, 0, len(fields))
+		args := make([]any, 0, len(fields))
 		for _, field := range fields {
 			conditions = append(conditions, field+" LIKE ?")
 			args = append(args, pattern)

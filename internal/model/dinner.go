@@ -2,6 +2,14 @@ package model
 
 import "time"
 
+const (
+	DINNER_HIRING = iota
+	DINNER_FULL
+	DINNER_ONGOING
+	DINNER_FINISHED
+	DINNER_CANCELLED
+)
+
 type DinnerModel struct {
 	ID         uint64        `gorm:"primary_key"`
 	LocationId uint64        `gorm:"not null"`
