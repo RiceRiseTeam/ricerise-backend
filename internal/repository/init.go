@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -12,13 +13,13 @@ type BaseRepository[T any] struct {
 	db *gorm.DB
 }
 
-func (r *BaseRepository[T]) Create(context context.Context, entity *T) error {
-	return r.db.WithContext(context).Create(entity).Error
+func (r *BaseRepository[T]) Create(ctx context.Context, entity *T) error {
+	return r.db.WithContext(ctx).Create(entity).Error
 }
 
-func (r *BaseRepository[T]) FindByIdA(context context.Context, id int64, queryArgs QueryArgs) (*T, error) {
+func (r *BaseRepository[T]) FindByIdA(ctx context.Context, id int64, queryArgs QueryArgs) (*T, error) {
 	var result T
-	if err := queryArgs(r.db.WithContext(context)).
+	if err := queryArgs(r.db.WithContext(ctx)).
 		First(&result, id).Error; err != nil {
 		return nil, err
 	}
@@ -26,51 +27,48 @@ func (r *BaseRepository[T]) FindByIdA(context context.Context, id int64, queryAr
 	return &result, nil
 }
 
-func (r *BaseRepository[T]) FindByA(context context.Context, where *T, queryArgs QueryArgs) (*T, error) {
+func (r *BaseRepository[T]) FindByA(ctx context.Context, where *T, queryArgs QueryArgs) (*T, error) {
 	var result T
-	if err := queryArgs(r.db.WithContext(context)).Where(where).First(&result).Error; err != nil {
+	if err := queryArgs(r.db.WithContext(ctx)).Where(where).First(&result).Error; err != nil {
 		return nil, err
 	}
 
 	return &result, nil
 }
 
-func (r *BaseRepository[T]) FindAllByA(context context.Context, where *T, queryArgs QueryArgs) (*[]T, error) {
+func (r *BaseRepository[T]) FindAllByA(ctx context.Context, where *T, queryArgs QueryArgs) (*[]T, error) {
 	var results []T
-	if err := queryArgs(r.db.WithContext(context)).Where(where).Find(&results).Error; err != nil {
+	if err := queryArgs(r.db.WithContext(ctx)).Where(where).Find(&results).Error; err != nil {
 		return nil, err
 	}
 
 	return &results, nil
 }
 
-func (r *BaseRepository[T]) FindById(context context.Context, id int64) (*T, error) {
-	return r.FindByIdA(context, id, func(db *gorm.DB) *gorm.DB { return db })
+func (r *BaseRepository[T]) FindById(ctx context.Context, id int64) (*T, error) {
+	return r.FindByIdA(ctx, id, func(db *gorm.DB) *gorm.DB { return db })
 }
 
-func (r *BaseRepository[T]) FindBy(context context.Context, where *T) (*T, error) {
-	return r.FindByA(context, where, func(db *gorm.DB) *gorm.DB { return db })
+func (r *BaseRepository[T]) FindBy(ctx context.Context, where *T) (*T, error) {
+	return r.FindByA(ctx, where, func(db *gorm.DB) *gorm.DB { return db })
 }
 
-func (r *BaseRepository[T]) LikeFindBy(context context.Context,keyword string,fields []string,queryArgs QueryArgs,
+func (r *BaseRepository[T]) LikeFindBy(ctx context.Context, keyword string, fields []string, queryArgs QueryArgs,
 ) (*[]T, error) {
-    var results []T
-    if keyword == "" {
-        if err := queryArgs(r.db.WithContext(ctx)).Find(&results).Error; err != nil {
-            return nil, err
-        }
-        return &results, nil
-    }
-    pattern := "%" + keyword + "%"
-    var conditions []string
-    var args []interface{}
-    for _, field := range fields {
-        conditions = append(conditions, field+" LIKE ?")
-        args = append(args, pattern)
-    }
-    db := r.db.WithContext(ctx).Where(strings.Join(conditions, " OR "), args...)
-    if err := queryArgs(db).Find(&results).Error; err != nil {
-        return nil, err
-    }
-    return &results, nil
+	var results []T
+	db := queryArgs(r.db.WithContext(ctx))
+	if keyword != "" && len(fields) > 0 {
+		pattern := "%" + keyword + "%"
+		conditions := make([]string, 0, len(fields))
+		args := make([]interface{}, 0, len(fields))
+		for _, field := range fields {
+			conditions = append(conditions, field+" LIKE ?")
+			args = append(args, pattern)
+		}
+		db = db.Where(strings.Join(conditions, " OR "), args...)
+	}
+	if err := db.Find(&results).Error; err != nil {
+		return nil, err
+	}
+	return &results, nil
 }

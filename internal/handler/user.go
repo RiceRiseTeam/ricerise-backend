@@ -33,15 +33,15 @@ func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.POST("/logout", dto.RouteWithDto(h.Logout))
 }
 
-func (h UserHandler) Register(context *gin.Context, req request.UserRegisterRequest) any {
-	if err := h.userService.Register(context, &req); err == nil {
+func (h UserHandler) Register(ctx *gin.Context, req request.UserRegisterRequest) any {
+	if err := h.userService.Register(ctx, &req); err == nil {
 		return dto.Success(nil)
 	}
 	return nil
 }
 
-func (h UserHandler) Login(context *gin.Context, req request.UserLoginRequest) any {
-	token, err := h.userService.Login(context, &req)
+func (h UserHandler) Login(ctx *gin.Context, req request.UserLoginRequest) any {
+	token, err := h.userService.Login(ctx, &req)
 	if err != nil {
 		return nil
 	}
@@ -50,43 +50,43 @@ func (h UserHandler) Login(context *gin.Context, req request.UserLoginRequest) a
 	})
 }
 
-func (h UserHandler) Logout(context *gin.Context, _ dto.Empty) any {
-	h.userService.Logout(context)
+func (h UserHandler) Logout(ctx *gin.Context, _ dto.Empty) any {
+	h.userService.Logout(ctx)
 	return dto.Success(nil)
 }
 
-func (h UserHandler) Refresh(context *gin.Context) {
-	oldToken, err := context.Cookie("refresh_token")
+func (h UserHandler) Refresh(ctx *gin.Context) {
+	oldToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
-		_ = context.Error(apperror.NoRefreshTokenError)
+		_ = ctx.Error(apperror.NoRefreshTokenError)
 		return
 	}
-	err = h.userService.Refresh(context, oldToken)
+	err = h.userService.Refresh(ctx, oldToken)
 	if err != nil {
-		_ = context.Error(err)
+		_ = ctx.Error(err)
 	}
 }
 
-func (h UserHandler) SSE(context *gin.Context) {
-	accessToken, err := context.Cookie("access_token")
+func (h UserHandler) SSE(ctx *gin.Context) {
+	accessToken, err := ctx.Cookie("access_token")
 	if err != nil {
-		_ = context.Error(apperror.NoAccessTokenError)
+		_ = ctx.Error(apperror.NoAccessTokenError)
 		return
 	}
 	info := h.authMiddleware.ParseAccessToken(accessToken)
 	if info == nil {
-		_ = context.Error(apperror.NoAccessTokenError)
+		_ = ctx.Error(apperror.NoAccessTokenError)
 		return
 	}
 
 	// 生成session 随机字符串
 	session := make([]byte, 16)
 	if _, err = rand.Read(session); err != nil {
-		_ = context.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 
-	sse.NewSessionWithUID(context, hex.EncodeToString(session), info.Username)
+	sse.NewSessionWithUID(ctx, hex.EncodeToString(session), info.Username)
 }
 
 func NewUserHandler(injector do.Injector) (*UserHandler, error) {

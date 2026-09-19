@@ -21,10 +21,10 @@ type UserService struct {
 	appConfig *config.AppConfig
 }
 
-func (h UserService) Register(context *gin.Context, request *request.UserRegisterRequest) error {
+func (h UserService) Register(ctx *gin.Context, request *request.UserRegisterRequest) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(request.Password), 12)
 	if err != nil {
-		_ = context.Error(err)
+		_ = ctx.Error(err)
 		return err
 	}
 
@@ -34,59 +34,59 @@ func (h UserService) Register(context *gin.Context, request *request.UserRegiste
 		Email:    request.Email,
 		Password: string(hash),
 	}
-	if err := h.repo.Create(context.Request.Context(), newUser); err != nil {
+	if err := h.repo.Create(ctx.Request.Context(), newUser); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			_ = context.Error(apperror.UserNameConflictError)
+			_ = ctx.Error(apperror.UserNameConflictError)
 			return err
 		}
 
-		_ = context.Error(err)
+		_ = ctx.Error(err)
 	}
 
 	return nil
 }
 
-func (h UserService) Login(context *gin.Context, request *request.UserLoginRequest) (string, error) {
-	user, err := h.repo.FindBy(context.Request.Context(), &model.UserModel{
+func (h UserService) Login(ctx *gin.Context, request *request.UserLoginRequest) (string, error) {
+	user, err := h.repo.FindBy(ctx.Request.Context(), &model.UserModel{
 		Username: request.UserID,
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			_ = context.Error(apperror.AccountPasswordError)
+			_ = ctx.Error(apperror.AccountPasswordError)
 			return "", err
 		}
 
-		_ = context.Error(err)
+		_ = ctx.Error(err)
 		return "", err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
 	if err != nil {
-		_ = context.Error(apperror.AccountPasswordError)
+		_ = ctx.Error(apperror.AccountPasswordError)
 		return "", err
 	}
 
 	accessToken, err := h.auth.CreateAccessToken(user.ID, user.Username, user.PermissionLevel)
 	if err != nil {
-		_ = context.Error(err)
+		_ = ctx.Error(err)
 		return "", err
 	}
 
 	refreshToken, err := h.auth.CreateRefreshToken(user.ID, user.Username, user.PermissionLevel)
 	if err != nil {
-		_ = context.Error(err)
+		_ = ctx.Error(err)
 		return "", err
 	}
 
-	h.setRefreshToken(context, refreshToken)
+	h.setRefreshToken(ctx, refreshToken)
 
 	return accessToken, nil
 }
 
-func (h UserService) Refresh(context *gin.Context, oldToken string) error {
+func (h UserService) Refresh(ctx *gin.Context, oldToken string) error {
 	userInfo := h.auth.ParseRefreshToken(oldToken)
 	if userInfo == nil {
-		_ = context.Error(apperror.NoRefreshTokenError)
+		_ = ctx.Error(apperror.NoRefreshTokenError)
 		return apperror.NoRefreshTokenError
 	}
 
@@ -94,30 +94,30 @@ func (h UserService) Refresh(context *gin.Context, oldToken string) error {
 
 	refreshToken, err := h.auth.CreateRefreshToken(userInfo.UserId, userInfo.Username, userInfo.PermissionLevel)
 	if err != nil {
-		_ = context.Error(apperror.InternalServerError)
+		_ = ctx.Error(apperror.InternalServerError)
 		return apperror.InternalServerError
 	}
 
-	h.setRefreshToken(context, refreshToken)
+	h.setRefreshToken(ctx, refreshToken)
 
 	// TODO(linstarowo): 使oldToken失效
 
 	return nil
 }
 
-func (h UserService) Logout(context *gin.Context) {
-	h.setRefreshToken(context, "")
-	h.setAccessToken(context, "")
+func (h UserService) Logout(ctx *gin.Context) {
+	h.setRefreshToken(ctx, "")
+	h.setAccessToken(ctx, "")
 }
 
-func (h UserService) setRefreshToken(context *gin.Context, refreshToken string) {
+func (h UserService) setRefreshToken(ctx *gin.Context, refreshToken string) {
 	var expire int
 	if refreshToken == "" {
 		expire = -1
 	} else {
 		expire = h.appConfig.RefreshTokenExpire
 	}
-	context.SetCookie("refresh_token",
+	ctx.SetCookie("refresh_token",
 		refreshToken,
 		expire,
 		"/api/v1/auth/refresh",
@@ -127,14 +127,14 @@ func (h UserService) setRefreshToken(context *gin.Context, refreshToken string) 
 	)
 }
 
-func (h UserService) setAccessToken(context *gin.Context, accessToken string) {
+func (h UserService) setAccessToken(ctx *gin.Context, accessToken string) {
 	var expire int
 	if accessToken == "" {
 		expire = -1
 	} else {
 		expire = h.appConfig.AccessTokenExpire
 	}
-	context.SetCookie("access_token",
+	ctx.SetCookie("access_token",
 		accessToken,
 		expire,
 		"/api/v1/sse",
