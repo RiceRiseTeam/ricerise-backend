@@ -31,7 +31,7 @@ func (a AdminHandler) RegisterRouters(router *gin.RouterGroup) {
 }
 
 func (a AdminHandler) GetStatus(ctx *gin.Context, _ dto.Empty) any {
-	return a.adminService.GetAppStatus(ctx)
+	return dto.Success(a.adminService.GetAppStatus(ctx))
 }
 
 func (a AdminHandler) GetComments(ctx *gin.Context, query query.AdminPageQuery) any {

@@ -22,6 +22,14 @@ func Success(data any) *CommonResponse {
 	}
 }
 
+func Created(data any) *CommonResponse {
+	return &CommonResponse{
+		Code:    20000,
+		Message: "created",
+		Data:    data,
+	}
+}
+
 func Error(err *apperror.AppError) *CommonResponse {
 	return &CommonResponse{
 		Code:    err.Code,

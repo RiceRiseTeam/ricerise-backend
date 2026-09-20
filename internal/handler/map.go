@@ -2,6 +2,9 @@ package handler
 
 import (
 	"ricerise/internal/config"
+	"ricerise/internal/dto"
+	"ricerise/internal/dto/request"
+	"ricerise/internal/middleware"
 	"ricerise/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -9,18 +12,42 @@ import (
 )
 
 type MapHandler struct {
-	appConfig  *config.AppConfig
-	mapService *service.MapService
+	appConfig      *config.AppConfig
+	mapService     *service.MapService
+	authMiddleware *middleware.AuthMiddleware
 }
 
 func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
+	api := router.Group("/map")
+	api.Use(m.authMiddleware.CreateHandler(m.authMiddleware.UserLevel))
+
+	api.POST("/comments", dto.RouteJsonWithDto(m.UploadComment))
+	api.POST("/locations", dto.RouteJsonWithDto(m.UploadLocation))
+}
+
+func (m MapHandler) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) any {
+	result := m.mapService.UploadComment(ctx, request)
+	if result == nil {
+		return nil
+	}
+	return dto.Created(result)
+}
+
+func (m MapHandler) UploadLocation(ctx *gin.Context, request request.UploadLocationRequest) any {
+	result := m.mapService.UploadLocation(ctx, request)
+	if result == nil {
+		return nil
+	}
+	return dto.Created(result)
 }
 
 func NewMapHandler(injector do.Injector) (*MapHandler, error) {
+	authMiddleware := do.MustInvoke[*middleware.AuthMiddleware](injector)
 	mapService := do.MustInvoke[*service.MapService](injector)
 	appConfig := do.MustInvoke[*config.AppConfig](injector)
 	return &MapHandler{
-		appConfig:  appConfig,
-		mapService: mapService,
+		appConfig:      appConfig,
+		mapService:     mapService,
+		authMiddleware: authMiddleware,
 	}, nil
 }

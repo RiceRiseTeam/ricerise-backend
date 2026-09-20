@@ -48,6 +48,11 @@ var AccessNoFoundError = &AppError{
 
 // 409XX 冲突问题
 
+var NameConflictError = &AppError{
+	Code:    40900,
+	Message: "名称已存在",
+}
+
 var UserNameConflictError = &AppError{
 	Code:    40901,
 	Message: "用户名已存在",
