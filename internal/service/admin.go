@@ -41,11 +41,17 @@ func (a *AdminService) GetAppStatus(ctx *gin.Context) *response.AdminStatusRespo
 }
 
 func (a *AdminService) ReviewComment(ctx *gin.Context, id uint64, pass bool) error {
-	_, err := a.commentRepository.FindById(ctx, id)
+	result, err := a.commentRepository.FindById(ctx, id)
 	if err != nil {
-		_ = ctx.Error(apperror.AccessNoFoundError)
+		_ = ctx.Error(err)
 		return err
 	}
+
+	if result == nil {
+		_ = ctx.Error(apperror.AccessNoFoundError)
+		return apperror.AccessNoFoundError
+	}
+
 	err = a.commentRepository.Updates(ctx, &model.CommentModel{ID: id}, &model.CommentModel{Reviewed: &pass})
 	if err != nil {
 		_ = ctx.Error(err)
@@ -55,8 +61,12 @@ func (a *AdminService) ReviewComment(ctx *gin.Context, id uint64, pass bool) err
 }
 
 func (a *AdminService) ReviewLocation(ctx *gin.Context, id uint64, pass bool) error {
-	_, err := a.locationRepository.FindById(ctx, id)
+	result, err := a.locationRepository.FindById(ctx, id)
 	if err != nil {
+		_ = ctx.Error(err)
+		return err
+	}
+	if result == nil {
 		_ = ctx.Error(apperror.AccessNoFoundError)
 		return err
 	}

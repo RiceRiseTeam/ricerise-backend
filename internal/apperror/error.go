@@ -9,6 +9,12 @@ func (e *AppError) Error() string {
 	return e.Message
 }
 
+// PlaceHolder 占位符 用于内部方法已经调用 context.Error() 后向调用者传递错误 系context.Abort 不能立即终止当前handler 的妥协设计
+var PlaceHolder = &AppError{
+	Code:    -1,
+	Message: "You should never see this",
+}
+
 var InternalServerError = &AppError{
 	Code:    50000,
 	Message: "Internal Server Error",

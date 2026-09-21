@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"gorm.io/gorm"
@@ -21,6 +22,9 @@ func (r *BaseRepository[T]) FindByIdA(ctx context.Context, id uint64, queryArgs 
 	var result T
 	if err := queryArgs(r.db.Model(new(T)).WithContext(ctx)).
 		First(&result, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -45,6 +49,7 @@ func (r *BaseRepository[T]) FindAllByA(ctx context.Context, where *T, queryArgs 
 	return &results, nil
 }
 
+// FindById 如果找不到记录 将返回 nil, nil 如果发生其他内部错误 将返回 nil, err
 func (r *BaseRepository[T]) FindById(ctx context.Context, id uint64) (*T, error) {
 	return r.FindByIdA(ctx, id, func(db *gorm.DB) *gorm.DB { return db })
 }
@@ -68,6 +73,14 @@ func (r *BaseRepository[T]) Count(ctx context.Context) (int64, error) {
 
 func (r *BaseRepository[T]) Updates(ctx context.Context, where *T, update *T) error {
 	return r.db.Model(new(T)).WithContext(ctx).Where(where).Updates(update).Error
+}
+
+func (r *BaseRepository[T]) Delete(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Delete(new(T), id).Error
+}
+
+func (r *BaseRepository[T]) ForceDelete(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Unscoped().Delete(new(T), id).Error
 }
 
 func (r *BaseRepository[T]) LikeFindBy(ctx context.Context, keyword string, fields []string, queryArgs QueryArgs,

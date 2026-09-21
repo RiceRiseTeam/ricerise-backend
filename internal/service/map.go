@@ -22,6 +22,63 @@ type MapService struct {
 	authMiddleware     *middleware.AuthMiddleware
 }
 
+func (m MapService) DeleteComment(ctx *gin.Context, id uint64) error {
+	comment := m.fetchLocation(ctx, id)
+	if comment == nil {
+		return apperror.PlaceHolder
+	}
+
+	//TODO(linstarowo): 鉴权
+	err := m.commentRepository.Delete(ctx, id)
+	if err != nil {
+		_ = ctx.Error(err)
+		return err
+	}
+	return nil
+}
+
+func (m MapService) DeleteLocation(ctx *gin.Context, id uint64) error {
+	location := m.fetchLocation(ctx, id)
+	if location == nil {
+		return apperror.PlaceHolder
+	}
+	//TODO(linstarowo): 鉴权
+	err := m.locationRepository.Delete(ctx, id)
+	if err != nil {
+		_ = ctx.Error(err)
+		return err
+	}
+	return nil
+}
+
+// 此方法会进行错误处理 只需向handler 回传占位符
+func (m MapService) fetchLocation(ctx *gin.Context, id uint64) *model.LocationModel {
+	location, err := m.locationRepository.FindById(ctx.Request.Context(), id)
+	if err != nil {
+		_ = ctx.Error(err)
+		return nil
+	}
+	if location == nil {
+		_ = ctx.Error(apperror.AccessNoFoundError)
+		return nil
+	}
+	return location
+}
+
+// 此方法会进行错误处理 只需向handler 回传占位符
+func (m MapService) fetchComment(ctx *gin.Context, id uint64) *model.CommentModel {
+	comment, err := m.commentRepository.FindById(ctx.Request.Context(), id)
+	if err != nil {
+		_ = ctx.Error(err)
+		return nil
+	}
+	if comment == nil {
+		_ = ctx.Error(apperror.AccessNoFoundError)
+		return nil
+	}
+	return comment
+}
+
 func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) *dto.CommentDto {
 	userInfo := m.authMiddleware.GetUserInfo(ctx)
 	if userInfo == nil {
@@ -29,13 +86,8 @@ func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommen
 		return nil
 	}
 	goContext := ctx.Request.Context()
-	location, err := m.locationRepository.FindById(goContext, request.LocationId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			_ = ctx.Error(apperror.AccessNoFoundError)
-			return nil
-		}
-		_ = ctx.Error(err)
+	location := m.fetchLocation(ctx, request.LocationId)
+	if location == nil {
 		return nil
 	}
 
@@ -45,7 +97,7 @@ func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommen
 		UserId:     userInfo.UserId,
 		LocationId: location.ID,
 	}
-	err = m.commentRepository.Create(goContext, newComment)
+	err := m.commentRepository.Create(goContext, newComment)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			_ = ctx.Error(apperror.NameConflictError)

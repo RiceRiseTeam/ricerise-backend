@@ -51,12 +51,12 @@ func (h UserService) Login(ctx *gin.Context, request *request.UserLoginRequest) 
 		Username: request.UserID,
 	})
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			_ = ctx.Error(apperror.AccountPasswordError)
-			return "", err
-		}
-
 		_ = ctx.Error(err)
+		return "", err
+	}
+
+	if user == nil {
+		_ = ctx.Error(apperror.AccountPasswordError)
 		return "", err
 	}
 
