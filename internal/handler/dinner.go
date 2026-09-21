@@ -49,7 +49,7 @@ func (h DinnerHandler) ListParticipant(ctx *gin.Context) {
 		_ = ctx.Error(err)
 		return
 	}
-	result, err := h.dinnerService.ListParticipant(ctx.Request.Context(), uri.ID)
+	result, err := h.dinnerService.ListParticipants(ctx.Request.Context(), uri.ID)
 	if err != nil {
 		_ = ctx.Error(err)
 		return

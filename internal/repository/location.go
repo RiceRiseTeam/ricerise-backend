@@ -10,7 +10,7 @@ import (
 )
 
 type LocationRepository struct {
-	BaseRepository[model.LocationModel]
+	gorm.Interface[model.LocationModel]
 	db *gorm.DB
 }
 
@@ -33,7 +33,7 @@ func NewLocationRepository(injector do.Injector) (*LocationRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 
 	return &LocationRepository{
-		BaseRepository: BaseRepository[model.LocationModel]{db: db},
-		db:             db,
+		Interface: gorm.G[model.LocationModel](db),
+		db:        db,
 	}, nil
 }

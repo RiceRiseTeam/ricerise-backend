@@ -8,7 +8,7 @@ import (
 )
 
 type UserRepository struct {
-	BaseRepository[model.UserModel]
+	gorm.Interface[model.UserModel]
 	db *gorm.DB
 }
 
@@ -16,7 +16,7 @@ func NewUserRepository(injector do.Injector) (*UserRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 
 	return &UserRepository{
-		BaseRepository: BaseRepository[model.UserModel]{db: db},
-		db:             db,
+		Interface: gorm.G[model.UserModel](db),
+		db:        db,
 	}, nil
 }

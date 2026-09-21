@@ -4,7 +4,7 @@ import (
 	"ricerise/internal/apperror"
 	"ricerise/internal/config"
 	"ricerise/internal/dto"
-	"ricerise/internal/dto/query"
+	"ricerise/internal/dto/querydto"
 	"ricerise/internal/dto/response"
 	"ricerise/internal/middleware"
 	"ricerise/internal/service"
@@ -34,7 +34,7 @@ func (a AdminHandler) GetStatus(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	return dto.Success(a.adminService.GetAppStatus(ctx)), nil
 }
 
-func (a AdminHandler) GetComments(ctx *gin.Context, query query.AdminPageQuery) (any, error) {
+func (a AdminHandler) GetComments(ctx *gin.Context, query querydto.AdminPageQuery) (any, error) {
 	data, hasNext, err := a.adminService.GetCommentReviewList(ctx, query)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (a AdminHandler) GetComments(ctx *gin.Context, query query.AdminPageQuery) 
 	}), nil
 }
 
-func (a AdminHandler) GetLocations(ctx *gin.Context, query query.AdminPageQuery) (any, error) {
+func (a AdminHandler) GetLocations(ctx *gin.Context, query querydto.AdminPageQuery) (any, error) {
 	data, hasNext, err := a.adminService.GetLocationReviewList(ctx, query)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (a AdminHandler) GetLocations(ctx *gin.Context, query query.AdminPageQuery)
 	}), nil
 }
 
-func (a AdminHandler) ReviewComment(ctx *gin.Context, query query.AdminReviewQuery) (any, error) {
+func (a AdminHandler) ReviewComment(ctx *gin.Context, query querydto.AdminReviewQuery) (any, error) {
 	commentId, err := dto.GetUrlID(ctx)
 	if err != nil {
 		return dto.Error(apperror.ValidationError), nil
@@ -70,7 +70,7 @@ func (a AdminHandler) ReviewComment(ctx *gin.Context, query query.AdminReviewQue
 	return dto.Success(nil), nil
 }
 
-func (a AdminHandler) ReviewLocation(ctx *gin.Context, query query.AdminReviewQuery) (any, error) {
+func (a AdminHandler) ReviewLocation(ctx *gin.Context, query querydto.AdminReviewQuery) (any, error) {
 	locationId, err := dto.GetUrlID(ctx)
 	if err != nil {
 		return dto.Error(apperror.ValidationError), nil

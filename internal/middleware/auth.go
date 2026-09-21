@@ -15,7 +15,7 @@ import (
 type TokenInfo struct {
 	UserId          uint64
 	Username        string
-	PermissionLevel int8
+	PermissionLevel PermissionLevel
 	TokenType       TokenType
 }
 
@@ -69,7 +69,7 @@ func (a AuthMiddleware) handle(ctx *gin.Context, expectPermission PermissionLeve
 		return
 	}
 
-	if expectPermission >= 0 && userInfo.PermissionLevel < int8(expectPermission) {
+	if expectPermission >= 0 && userInfo.PermissionLevel < expectPermission {
 		ctx.AbortWithStatusJSON(200, dto.Error(apperror.NoPermissionError))
 		return
 	}
@@ -85,15 +85,15 @@ func (a AuthMiddleware) ParseAccessToken(token string) *TokenInfo {
 	return a.parseToken(token, accessType)
 }
 
-func (a AuthMiddleware) CreateRefreshToken(userId uint64, userName string, permissionLevel int8) (string, error) {
+func (a AuthMiddleware) CreateRefreshToken(userId uint64, userName string, permissionLevel PermissionLevel) (string, error) {
 	return a.createToken(userId, userName, permissionLevel, refreshType)
 }
 
-func (a AuthMiddleware) CreateAccessToken(userId uint64, userName string, permissionLevel int8) (string, error) {
+func (a AuthMiddleware) CreateAccessToken(userId uint64, userName string, permissionLevel PermissionLevel) (string, error) {
 	return a.createToken(userId, userName, permissionLevel, accessType)
 }
 
-func (a AuthMiddleware) createToken(userId uint64, userName string, permissionLevel int8, tokenType TokenType) (string, error) {
+func (a AuthMiddleware) createToken(userId uint64, userName string, permissionLevel PermissionLevel, tokenType TokenType) (string, error) {
 	var expiration int
 	if tokenType == accessType {
 		expiration = a.appConfig.AccessTokenExpire
@@ -103,7 +103,7 @@ func (a AuthMiddleware) createToken(userId uint64, userName string, permissionLe
 	tokenClaims := TokenClaims{
 		UserId:          userId,
 		Username:        userName,
-		PermissionLevel: permissionLevel,
+		PermissionLevel: int8(permissionLevel),
 		TokenType:       tokenType,
 
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -132,7 +132,7 @@ func (a AuthMiddleware) parseToken(tokenString string, expectType TokenType) *To
 	return &TokenInfo{
 		UserId:          tokenClaims.UserId,
 		Username:        tokenClaims.Username,
-		PermissionLevel: tokenClaims.PermissionLevel,
+		PermissionLevel: PermissionLevel(tokenClaims.PermissionLevel),
 		TokenType:       expectType,
 	}
 }

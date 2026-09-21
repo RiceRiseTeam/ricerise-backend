@@ -1,9 +1,11 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"ricerise/internal/apperror"
 	"ricerise/internal/config"
+	"ricerise/internal/dal/query"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
 	"ricerise/internal/middleware"
@@ -23,13 +25,20 @@ type MapService struct {
 }
 
 func (m MapService) DeleteComment(ctx *gin.Context, id uint64) error {
-	comment, err := m.fetchLocation(ctx, id)
+	goContext := ctx.Request.Context()
+	comment, err := m.fetchComment(goContext, id)
 	if err != nil {
 		return err
 	}
 
-	//TODO(linstarowo): 鉴权
-	err = m.commentRepository.Delete(ctx, comment.ID)
+	userInfo := m.authMiddleware.GetUserInfo(ctx)
+	if userInfo == nil {
+		return apperror.NoAccessTokenError
+	}
+	if userInfo.PermissionLevel < m.authMiddleware.OwnerLevel && userInfo.Username == comment.User.Username {
+		return apperror.NoPermissionError
+	}
+	_, err = m.commentRepository.Where(query.CommentModel.ID.Eq(id)).Delete(goContext)
 	if err != nil {
 		return err
 	}
@@ -37,38 +46,46 @@ func (m MapService) DeleteComment(ctx *gin.Context, id uint64) error {
 }
 
 func (m MapService) DeleteLocation(ctx *gin.Context, id uint64) error {
-	location, err := m.fetchLocation(ctx, id)
+	goContext := ctx.Request.Context()
+	_, err := m.fetchLocation(goContext, id)
 	if err != nil {
 		return err
 	}
-	//TODO(linstarowo): 鉴权
-	err = m.locationRepository.Delete(ctx, location.ID)
+	userInfo := m.authMiddleware.GetUserInfo(ctx)
+	if userInfo == nil {
+		return apperror.NoAccessTokenError
+	}
+	if userInfo.PermissionLevel < m.authMiddleware.OwnerLevel {
+		return apperror.NoPermissionError
+	}
+
+	_, err = m.locationRepository.Where(query.LocationModel.ID.Eq(id)).Delete(goContext)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m MapService) fetchLocation(ctx *gin.Context, id uint64) (*model.LocationModel, error) {
-	location, err := m.locationRepository.FindById(ctx.Request.Context(), id)
+func (m MapService) fetchLocation(ctx context.Context, id uint64) (*model.LocationModel, error) {
+	location, err := m.locationRepository.Where(query.LocationModel.ID.Eq(id)).First(ctx)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.AccessNoFoundError
+		}
 		return nil, err
 	}
-	if location == nil {
-		return nil, apperror.AccessNoFoundError
-	}
-	return location, nil
+	return &location, nil
 }
 
-func (m MapService) fetchComment(ctx *gin.Context, id uint64) (*model.CommentModel, error) {
-	comment, err := m.commentRepository.FindById(ctx.Request.Context(), id)
+func (m MapService) fetchComment(ctx context.Context, id uint64) (*model.CommentModel, error) {
+	comment, err := m.commentRepository.Where(query.LocationModel.ID.Eq(id)).Preload(query.CommentModel.User.Name(), nil).First(ctx)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.AccessNoFoundError
+		}
 		return nil, err
 	}
-	if comment == nil {
-		return nil, apperror.AccessNoFoundError
-	}
-	return comment, nil
+	return &comment, nil
 }
 
 func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) (*dto.CommentDto, error) {

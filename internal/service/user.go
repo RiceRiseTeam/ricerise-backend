@@ -4,6 +4,7 @@ import (
 	"errors"
 	"ricerise/internal/apperror"
 	"ricerise/internal/config"
+	"ricerise/internal/dal/query"
 	"ricerise/internal/dto/request"
 	"ricerise/internal/middleware"
 	"ricerise/internal/model"
@@ -45,15 +46,12 @@ func (h UserService) Register(ctx *gin.Context, request *request.UserRegisterReq
 }
 
 func (h UserService) Login(ctx *gin.Context, request *request.UserLoginRequest) (string, error) {
-	user, err := h.repo.FindBy(ctx.Request.Context(), &model.UserModel{
-		Username: request.UserID,
-	})
+	user, err := h.repo.Where(query.UserModel.Username.Eq(request.UserID)).First(ctx.Request.Context())
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", apperror.AccountPasswordError
+		}
 		return "", err
-	}
-
-	if user == nil {
-		return "", apperror.AccountPasswordError
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
@@ -61,12 +59,12 @@ func (h UserService) Login(ctx *gin.Context, request *request.UserLoginRequest) 
 		return "", apperror.AccountPasswordError
 	}
 
-	accessToken, err := h.auth.CreateAccessToken(user.ID, user.Username, user.PermissionLevel)
+	accessToken, err := h.auth.CreateAccessToken(user.ID, user.Username, middleware.PermissionLevel(user.PermissionLevel))
 	if err != nil {
 		return "", err
 	}
 
-	refreshToken, err := h.auth.CreateRefreshToken(user.ID, user.Username, user.PermissionLevel)
+	refreshToken, err := h.auth.CreateRefreshToken(user.ID, user.Username, middleware.PermissionLevel(user.PermissionLevel))
 	if err != nil {
 		return "", err
 	}

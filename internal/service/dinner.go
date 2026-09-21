@@ -7,7 +7,6 @@ import (
 	"ricerise/internal/repository"
 
 	"github.com/samber/do/v2"
-	"gorm.io/gorm"
 )
 
 type DinnerService struct {
@@ -17,28 +16,32 @@ type DinnerService struct {
 }
 
 func (s DinnerService) List(ctx context.Context) (*[]model.DinnerModel, error) {
-	return s.dinnerRepo.FindAllByA(ctx, &model.DinnerModel{Status: 0}, func(db *gorm.DB) *gorm.DB {
-		return db.Preload("Location").Preload("Host")
-	})
+	//return s.dinnerRepo.FindAllByA(ctx, &model.DinnerModel{Status: 0}, func(db *gorm.DB) *gorm.DB {
+	//	return db.Preload("Location").Preload("Host")
+	//})
+	return nil, nil
 }
 
 func (s DinnerService) LikeFind(ctx context.Context, locationName string) (*[]model.DinnerModel, error) {
-	return s.dinnerRepo.FindByLocationName(ctx, locationName)
+	//return s.dinnerRepo.FindByLocationName(ctx, locationName)
+	return nil, nil
 }
 
-func (s DinnerService) ListParticipant(ctx context.Context, dinnerID uint64) (*[]model.ParticipantModel, error) {
-	return s.participantRepo.ListParticipant(ctx, dinnerID)
+func (s DinnerService) ListParticipants(ctx context.Context, dinnerID uint64) (*[]model.ParticipantModel, error) {
+	//return s.participantRepo.ListParticipant(ctx, dinnerID)
+	return nil, nil
 }
 
 func (s DinnerService) NewParticipate(ctx context.Context, userID, dinnerID uint64) error {
-	if _, err := s.dinnerRepo.FindById(ctx, dinnerID); err != nil {
-		return err
-	}
-	return s.participantRepo.Create(ctx, &model.ParticipantModel{
-		UserId:   userID,
-		DinnerId: dinnerID,
-		Status:   0,
-	})
+	//if _, err := s.dinnerRepo.FindById(ctx, dinnerID); err != nil {
+	//	return err
+	//}
+	//return s.participantRepo.Create(ctx, &model.ParticipantModel{
+	//	UserId:   userID,
+	//	DinnerId: dinnerID,
+	//	Status:   0,
+	//})
+	return nil
 }
 
 func NewDinnerService(injector do.Injector) (*DinnerService, error) {

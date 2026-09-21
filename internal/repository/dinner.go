@@ -9,7 +9,7 @@ import (
 )
 
 type DinnerRepository struct {
-	BaseRepository[model.DinnerModel]
+	gorm.Interface[model.DinnerModel]
 	db *gorm.DB
 }
 
@@ -17,8 +17,8 @@ func NewDinnerRepository(injector do.Injector) (*DinnerRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 
 	return &DinnerRepository{
-		BaseRepository: BaseRepository[model.DinnerModel]{db: db},
-		db:             db,
+		Interface: gorm.G[model.DinnerModel](db),
+		db:        db,
 	}, nil
 }
 

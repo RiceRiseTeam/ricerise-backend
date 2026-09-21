@@ -10,7 +10,7 @@ import (
 )
 
 type CommentRepository struct {
-	BaseRepository[model.CommentModel]
+	gorm.Interface[model.CommentModel]
 	db *gorm.DB
 }
 
@@ -32,7 +32,7 @@ func (l CommentRepository) FindNotReviewedOrderedByCreatedAt(ctx context.Context
 func NewCommentRepository(injector do.Injector) (*CommentRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 	return &CommentRepository{
-		BaseRepository: BaseRepository[model.CommentModel]{db: db},
-		db:             db,
+		Interface: gorm.G[model.CommentModel](db),
+		db:        db,
 	}, nil
 }

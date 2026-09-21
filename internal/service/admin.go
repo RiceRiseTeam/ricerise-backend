@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"ricerise/internal/apperror"
 	"ricerise/internal/config"
-	"ricerise/internal/dto/query"
+	"ricerise/internal/dal/query"
+	"ricerise/internal/dto/querydto"
 	"ricerise/internal/dto/response"
 	"ricerise/internal/model"
 	"ricerise/internal/repository"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do/v2"
+	"gorm.io/gorm"
 )
 
 type AdminService struct {
@@ -25,12 +28,10 @@ type AdminService struct {
 func (a *AdminService) GetAppStatus(ctx *gin.Context) *response.AdminStatusResponse {
 	goContext := ctx.Request.Context()
 
-	userCount, _ := a.userRepository.Count(goContext)
-	dinnerCount, _ := a.dinnerRepository.Count(goContext)
-	currentDinner, _ := a.dinnerRepository.CountBy(goContext, &model.DinnerModel{
-		Status: model.DINNER_ONGOING,
-	})
-	locationCount, _ := a.dinnerRepository.Count(goContext)
+	userCount, _ := a.userRepository.Count(goContext, query.UserModel.ID.Column().Name)
+	dinnerCount, _ := a.dinnerRepository.Count(goContext, query.DinnerModel.ID.Column().Name)
+	currentDinner, _ := a.dinnerRepository.Where(query.DinnerModel.Status.Eq(model.DINNER_ONGOING)).Count(goContext, query.DinnerModel.ID.Column().Name)
+	locationCount, _ := a.dinnerRepository.Count(goContext, query.LocationModel.ID.Column().Name)
 
 	return &response.AdminStatusResponse{
 		CurrentDinner: int(currentDinner),
@@ -41,16 +42,16 @@ func (a *AdminService) GetAppStatus(ctx *gin.Context) *response.AdminStatusRespo
 }
 
 func (a *AdminService) ReviewComment(ctx *gin.Context, id uint64, pass bool) error {
-	result, err := a.commentRepository.FindById(ctx, id)
+	goContext := ctx.Request.Context()
+	_, err := a.commentRepository.Where(query.CommentModel.ID.Eq(id)).First(goContext)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperror.AccessNoFoundError
+		}
 		return err
 	}
 
-	if result == nil {
-		return apperror.AccessNoFoundError
-	}
-
-	err = a.commentRepository.Updates(ctx, &model.CommentModel{ID: id}, &model.CommentModel{Reviewed: &pass})
+	_, err = a.commentRepository.Where(query.CommentModel.ID.Gt(id)).Set(query.CommentModel.Reviewed.Set(pass)).Update(goContext)
 	if err != nil {
 		return err
 	}
@@ -58,21 +59,22 @@ func (a *AdminService) ReviewComment(ctx *gin.Context, id uint64, pass bool) err
 }
 
 func (a *AdminService) ReviewLocation(ctx *gin.Context, id uint64, pass bool) error {
-	result, err := a.locationRepository.FindById(ctx, id)
+	goContext := ctx.Request.Context()
+	_, err := a.locationRepository.Where(query.LocationModel.ID.Eq(id)).First(goContext)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperror.AccessNoFoundError
+		}
 		return err
 	}
-	if result == nil {
-		return err
-	}
-	err = a.locationRepository.Updates(ctx, &model.LocationModel{ID: id}, &model.LocationModel{Reviewed: &pass})
+	_, err = a.locationRepository.Where(query.LocationModel.ID.Eq(id)).Set(query.LocationModel.Reviewed.Set(pass)).Update(goContext)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func getReviewList[T any](ctx *gin.Context, pageQuery query.AdminPageQuery, repo interface {
+func getReviewList[T any](ctx *gin.Context, pageQuery querydto.AdminPageQuery, repo interface {
 	FindNotReviewedOrderedByCreatedAt(ctx context.Context, pageSize int, startId *uint64, startTime *time.Time) ([]*T, error)
 }) ([]*T, bool, error) {
 	result, err := repo.FindNotReviewedOrderedByCreatedAt(ctx, pageQuery.PageSize, pageQuery.StartId, pageQuery.StartTime)
@@ -89,11 +91,11 @@ func getReviewList[T any](ctx *gin.Context, pageQuery query.AdminPageQuery, repo
 	return result, hasNextPage, nil
 }
 
-func (a *AdminService) GetLocationReviewList(ctx *gin.Context, pageQuery query.AdminPageQuery) ([]*model.LocationModel, bool, error) {
+func (a *AdminService) GetLocationReviewList(ctx *gin.Context, pageQuery querydto.AdminPageQuery) ([]*model.LocationModel, bool, error) {
 	return getReviewList[model.LocationModel](ctx, pageQuery, a.locationRepository)
 }
 
-func (a *AdminService) GetCommentReviewList(ctx *gin.Context, pageQuery query.AdminPageQuery) ([]*model.CommentModel, bool, error) {
+func (a *AdminService) GetCommentReviewList(ctx *gin.Context, pageQuery querydto.AdminPageQuery) ([]*model.CommentModel, bool, error) {
 	return getReviewList[model.CommentModel](ctx, pageQuery, a.commentRepository)
 }
 
