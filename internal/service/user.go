@@ -24,7 +24,6 @@ type UserService struct {
 func (h UserService) Register(ctx *gin.Context, request *request.UserRegisterRequest) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(request.Password), 12)
 	if err != nil {
-		_ = ctx.Error(err)
 		return err
 	}
 
@@ -34,13 +33,12 @@ func (h UserService) Register(ctx *gin.Context, request *request.UserRegisterReq
 		Email:    request.Email,
 		Password: string(hash),
 	}
-	if err := h.repo.Create(ctx.Request.Context(), newUser); err != nil {
+	if err = h.repo.Create(ctx.Request.Context(), newUser); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			_ = ctx.Error(apperror.UserNameConflictError)
-			return err
+			return apperror.UserNameConflictError
 		}
 
-		_ = ctx.Error(err)
+		return err
 	}
 
 	return nil
@@ -51,30 +49,25 @@ func (h UserService) Login(ctx *gin.Context, request *request.UserLoginRequest) 
 		Username: request.UserID,
 	})
 	if err != nil {
-		_ = ctx.Error(err)
 		return "", err
 	}
 
 	if user == nil {
-		_ = ctx.Error(apperror.AccountPasswordError)
-		return "", err
+		return "", apperror.AccountPasswordError
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
 	if err != nil {
-		_ = ctx.Error(apperror.AccountPasswordError)
-		return "", err
+		return "", apperror.AccountPasswordError
 	}
 
 	accessToken, err := h.auth.CreateAccessToken(user.ID, user.Username, user.PermissionLevel)
 	if err != nil {
-		_ = ctx.Error(err)
 		return "", err
 	}
 
 	refreshToken, err := h.auth.CreateRefreshToken(user.ID, user.Username, user.PermissionLevel)
 	if err != nil {
-		_ = ctx.Error(err)
 		return "", err
 	}
 
@@ -86,7 +79,6 @@ func (h UserService) Login(ctx *gin.Context, request *request.UserLoginRequest) 
 func (h UserService) Refresh(ctx *gin.Context, oldToken string) error {
 	userInfo := h.auth.ParseRefreshToken(oldToken)
 	if userInfo == nil {
-		_ = ctx.Error(apperror.NoRefreshTokenError)
 		return apperror.NoRefreshTokenError
 	}
 
@@ -94,7 +86,6 @@ func (h UserService) Refresh(ctx *gin.Context, oldToken string) error {
 
 	refreshToken, err := h.auth.CreateRefreshToken(userInfo.UserId, userInfo.Username, userInfo.PermissionLevel)
 	if err != nil {
-		_ = ctx.Error(apperror.InternalServerError)
 		return apperror.InternalServerError
 	}
 

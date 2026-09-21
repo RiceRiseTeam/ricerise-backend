@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"ricerise/internal/apperror"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
 	"ricerise/internal/dto/response"
@@ -24,22 +25,20 @@ func (h DinnerHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.POST("/newparticipate", dto.RouteWithDto(h.NewParticipate))
 }
 
-func (h DinnerHandler) ListDinner(ctx *gin.Context, _ dto.EmptyDto) any {
+func (h DinnerHandler) ListDinner(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	result, err := h.dinnerService.List(ctx.Request.Context())
 	if err != nil {
-		_ = ctx.Error(err)
-		return nil
+		return nil, err
 	}
-	return dto.Success(&response.DinnerFindResponse{Result: *result})
+	return dto.Success(&response.DinnerFindResponse{Result: *result}), nil
 }
 
-func (h DinnerHandler) LikeFind(ctx *gin.Context, req request.DinnerLikeFindRequest) any {
+func (h DinnerHandler) LikeFind(ctx *gin.Context, req request.DinnerLikeFindRequest) (any, error) {
 	result, err := h.dinnerService.LikeFind(ctx.Request.Context(), req.LocationName)
 	if err != nil {
-		_ = ctx.Error(err)
-		return nil
+		return nil, err
 	}
-	return dto.Success(&response.DinnerFindResponse{Result: *result})
+	return dto.Success(&response.DinnerFindResponse{Result: *result}), nil
 }
 
 func (h DinnerHandler) ListParticipant(ctx *gin.Context) {
@@ -58,16 +57,15 @@ func (h DinnerHandler) ListParticipant(ctx *gin.Context) {
 	ctx.JSON(200, dto.Success(&response.ParticipantFindResponse{Result: *result}))
 }
 
-func (h DinnerHandler) NewParticipate(ctx *gin.Context, req request.NewParticipateRequest) any {
+func (h DinnerHandler) NewParticipate(ctx *gin.Context, req request.NewParticipateRequest) (any, error) {
 	info := h.auth.GetUserInfo(ctx)
 	if info == nil {
-		return nil
+		return nil, apperror.NoAccessTokenError
 	}
 	if err := h.dinnerService.NewParticipate(ctx.Request.Context(), info.UserId, req.DinnerID); err != nil {
-		_ = ctx.Error(err)
-		return nil
+		return nil, err
 	}
-	return dto.Success(nil)
+	return dto.Success(nil), nil
 }
 
 func NewDinnerHandler(injector do.Injector) (*DinnerHandler, error) {

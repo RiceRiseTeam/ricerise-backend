@@ -23,72 +23,63 @@ type MapService struct {
 }
 
 func (m MapService) DeleteComment(ctx *gin.Context, id uint64) error {
-	comment := m.fetchLocation(ctx, id)
-	if comment == nil {
-		return apperror.PlaceHolder
+	comment, err := m.fetchLocation(ctx, id)
+	if err != nil {
+		return err
 	}
 
 	//TODO(linstarowo): 鉴权
-	err := m.commentRepository.Delete(ctx, id)
+	err = m.commentRepository.Delete(ctx, comment.ID)
 	if err != nil {
-		_ = ctx.Error(err)
 		return err
 	}
 	return nil
 }
 
 func (m MapService) DeleteLocation(ctx *gin.Context, id uint64) error {
-	location := m.fetchLocation(ctx, id)
-	if location == nil {
-		return apperror.PlaceHolder
+	location, err := m.fetchLocation(ctx, id)
+	if err != nil {
+		return err
 	}
 	//TODO(linstarowo): 鉴权
-	err := m.locationRepository.Delete(ctx, id)
+	err = m.locationRepository.Delete(ctx, location.ID)
 	if err != nil {
-		_ = ctx.Error(err)
 		return err
 	}
 	return nil
 }
 
-// 此方法会进行错误处理 只需向handler 回传占位符
-func (m MapService) fetchLocation(ctx *gin.Context, id uint64) *model.LocationModel {
+func (m MapService) fetchLocation(ctx *gin.Context, id uint64) (*model.LocationModel, error) {
 	location, err := m.locationRepository.FindById(ctx.Request.Context(), id)
 	if err != nil {
-		_ = ctx.Error(err)
-		return nil
+		return nil, err
 	}
 	if location == nil {
-		_ = ctx.Error(apperror.AccessNoFoundError)
-		return nil
+		return nil, apperror.AccessNoFoundError
 	}
-	return location
+	return location, nil
 }
 
-// 此方法会进行错误处理 只需向handler 回传占位符
-func (m MapService) fetchComment(ctx *gin.Context, id uint64) *model.CommentModel {
+func (m MapService) fetchComment(ctx *gin.Context, id uint64) (*model.CommentModel, error) {
 	comment, err := m.commentRepository.FindById(ctx.Request.Context(), id)
 	if err != nil {
-		_ = ctx.Error(err)
-		return nil
+		return nil, err
 	}
 	if comment == nil {
-		_ = ctx.Error(apperror.AccessNoFoundError)
-		return nil
+		return nil, apperror.AccessNoFoundError
 	}
-	return comment
+	return comment, nil
 }
 
-func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) *dto.CommentDto {
+func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) (*dto.CommentDto, error) {
 	userInfo := m.authMiddleware.GetUserInfo(ctx)
 	if userInfo == nil {
-		_ = ctx.Error(apperror.NoAccessTokenError)
-		return nil
+		return nil, apperror.NoAccessTokenError
 	}
 	goContext := ctx.Request.Context()
-	location := m.fetchLocation(ctx, request.LocationId)
+	location, err := m.fetchLocation(ctx, request.LocationId)
 	if location == nil {
-		return nil
+		return nil, err
 	}
 
 	newComment := &model.CommentModel{
@@ -97,24 +88,21 @@ func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommen
 		UserId:     userInfo.UserId,
 		LocationId: location.ID,
 	}
-	err := m.commentRepository.Create(goContext, newComment)
+	err = m.commentRepository.Create(goContext, newComment)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			_ = ctx.Error(apperror.NameConflictError)
-			return nil
+			return nil, apperror.NameConflictError
 		}
-		_ = ctx.Error(err)
-		return nil
+		return nil, err
 	}
 
-	return dto.NewCommentDto(newComment)
+	return dto.NewCommentDto(newComment), nil
 }
 
-func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocationRequest) *dto.LocationDto {
+func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocationRequest) (*dto.LocationDto, error) {
 	userInfo := m.authMiddleware.GetUserInfo(ctx)
 	if userInfo == nil {
-		_ = ctx.Error(apperror.NoAccessTokenError)
-		return nil
+		return nil, apperror.NoAccessTokenError
 	}
 
 	newLocation := &model.LocationModel{
@@ -127,14 +115,12 @@ func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocat
 	err := m.locationRepository.Create(ctx.Request.Context(), newLocation)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			_ = ctx.Error(apperror.NameConflictError)
-			return nil
+			return nil, apperror.NameConflictError
 		}
-		_ = ctx.Error(err)
-		return nil
+		return nil, err
 	}
 
-	return dto.NewLocationDto(newLocation)
+	return dto.NewLocationDto(newLocation), nil
 }
 
 func NewMapService(injector do.Injector) (*MapService, error) {

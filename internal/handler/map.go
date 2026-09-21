@@ -25,20 +25,20 @@ func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.POST("/locations", dto.RouteWithDto(m.UploadLocation))
 }
 
-func (m MapHandler) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) any {
-	result := m.mapService.UploadComment(ctx, request)
-	if result == nil {
-		return nil
+func (m MapHandler) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) (any, error) {
+	result, err := m.mapService.UploadComment(ctx, request)
+	if err != nil {
+		return nil, err
 	}
-	return dto.Created(result)
+	return dto.Created(result), nil
 }
 
-func (m MapHandler) UploadLocation(ctx *gin.Context, request request.UploadLocationRequest) any {
-	result := m.mapService.UploadLocation(ctx, request)
-	if result == nil {
-		return nil
+func (m MapHandler) UploadLocation(ctx *gin.Context, request request.UploadLocationRequest) (any, error) {
+	result, err := m.mapService.UploadLocation(ctx, request)
+	if err != nil {
+		return nil, nil
 	}
-	return dto.Created(result)
+	return dto.Created(result), nil
 }
 
 func NewMapHandler(injector do.Injector) (*MapHandler, error) {

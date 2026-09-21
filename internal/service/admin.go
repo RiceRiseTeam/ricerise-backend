@@ -43,18 +43,15 @@ func (a *AdminService) GetAppStatus(ctx *gin.Context) *response.AdminStatusRespo
 func (a *AdminService) ReviewComment(ctx *gin.Context, id uint64, pass bool) error {
 	result, err := a.commentRepository.FindById(ctx, id)
 	if err != nil {
-		_ = ctx.Error(err)
 		return err
 	}
 
 	if result == nil {
-		_ = ctx.Error(apperror.AccessNoFoundError)
 		return apperror.AccessNoFoundError
 	}
 
 	err = a.commentRepository.Updates(ctx, &model.CommentModel{ID: id}, &model.CommentModel{Reviewed: &pass})
 	if err != nil {
-		_ = ctx.Error(err)
 		return err
 	}
 	return nil
@@ -63,16 +60,13 @@ func (a *AdminService) ReviewComment(ctx *gin.Context, id uint64, pass bool) err
 func (a *AdminService) ReviewLocation(ctx *gin.Context, id uint64, pass bool) error {
 	result, err := a.locationRepository.FindById(ctx, id)
 	if err != nil {
-		_ = ctx.Error(err)
 		return err
 	}
 	if result == nil {
-		_ = ctx.Error(apperror.AccessNoFoundError)
 		return err
 	}
 	err = a.locationRepository.Updates(ctx, &model.LocationModel{ID: id}, &model.LocationModel{Reviewed: &pass})
 	if err != nil {
-		_ = ctx.Error(err)
 		return err
 	}
 	return nil
@@ -83,7 +77,6 @@ func getReviewList[T any](ctx *gin.Context, pageQuery query.AdminPageQuery, repo
 }) ([]*T, bool, error) {
 	result, err := repo.FindNotReviewedOrderedByCreatedAt(ctx, pageQuery.PageSize, pageQuery.StartId, pageQuery.StartTime)
 	if err != nil {
-		_ = ctx.Error(err)
 		return nil, false, err
 	}
 

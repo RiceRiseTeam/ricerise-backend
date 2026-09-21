@@ -33,26 +33,27 @@ func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.POST("/logout", dto.RouteWithDto(h.Logout))
 }
 
-func (h UserHandler) Register(ctx *gin.Context, req request.UserRegisterRequest) any {
-	if err := h.userService.Register(ctx, &req); err == nil {
-		return dto.Success(nil)
+func (h UserHandler) Register(ctx *gin.Context, req request.UserRegisterRequest) (any, error) {
+	err := h.userService.Register(ctx, &req)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return dto.Success(nil), nil
 }
 
-func (h UserHandler) Login(ctx *gin.Context, req request.UserLoginRequest) any {
+func (h UserHandler) Login(ctx *gin.Context, req request.UserLoginRequest) (any, error) {
 	token, err := h.userService.Login(ctx, &req)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	return dto.Success(&response.UserLoginResponse{
 		AccessToken: token,
-	})
+	}), nil
 }
 
-func (h UserHandler) Logout(ctx *gin.Context, _ dto.EmptyDto) any {
+func (h UserHandler) Logout(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	h.userService.Logout(ctx)
-	return dto.Success(nil)
+	return dto.Success(nil), nil
 }
 
 func (h UserHandler) Refresh(ctx *gin.Context) {

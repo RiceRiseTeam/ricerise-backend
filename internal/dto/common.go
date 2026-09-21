@@ -38,7 +38,7 @@ func Error(err *apperror.AppError) *CommonResponse {
 	}
 }
 
-func RouteWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
+func RouteWithDto[T any](input func(ctx *gin.Context, dto T) (any, error)) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var req T
 		var result any
@@ -49,7 +49,11 @@ func RouteWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.
 				return
 			}
 		}
-		result = input(ctx, req)
+		result, err := input(ctx, req)
+		if err != nil {
+			_ = ctx.Error(err)
+			return
+		}
 		if result != nil {
 			ctx.JSON(200, result)
 		}
