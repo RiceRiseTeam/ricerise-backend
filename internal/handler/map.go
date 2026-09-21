@@ -21,8 +21,8 @@ func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
 	api := router.Group("/map")
 	api.Use(m.authMiddleware.CreateHandler(m.authMiddleware.UserLevel))
 
-	api.POST("/comments", dto.RouteJsonWithDto(m.UploadComment))
-	api.POST("/locations", dto.RouteJsonWithDto(m.UploadLocation))
+	api.POST("/comments", dto.RouteWithDto(m.UploadComment))
+	api.POST("/locations", dto.RouteWithDto(m.UploadLocation))
 }
 
 func (m MapHandler) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) any {

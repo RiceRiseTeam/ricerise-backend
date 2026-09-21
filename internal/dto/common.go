@@ -6,12 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Empty struct{}
+type EmptyDto struct{}
 
 type CommonResponse struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
 }
 
 func Success(data any) *CommonResponse {
@@ -38,44 +38,18 @@ func Error(err *apperror.AppError) *CommonResponse {
 	}
 }
 
-func RouteJsonWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
+func RouteWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var req T
 		var result any
-		switch any(req).(type) {
-		case Empty:
-			result = input(ctx, req)
-		default:
-			err := ctx.ShouldBindJSON(&req)
-			if err != nil {
+
+		if _, ok := any(req).(EmptyDto); !ok {
+			if err := ctx.ShouldBind(&req); err != nil {
 				_ = ctx.Error(err)
 				return
 			}
-			result = input(ctx, req)
 		}
-
-		if result != nil {
-			ctx.JSON(200, result)
-		}
-	}
-}
-
-func RouteQueryWithDto[T any](input func(ctx *gin.Context, dto T) any) func(ctx *gin.Context) {
-	return func(ctx *gin.Context) {
-		var req T
-		var result any
-		switch any(req).(type) {
-		case Empty:
-			result = input(ctx, req)
-		default:
-			err := ctx.ShouldBindQuery(&req)
-			if err != nil {
-				_ = ctx.Error(err)
-				return
-			}
-			result = input(ctx, req)
-		}
-
+		result = input(ctx, req)
 		if result != nil {
 			ctx.JSON(200, result)
 		}

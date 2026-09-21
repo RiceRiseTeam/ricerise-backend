@@ -23,14 +23,14 @@ func (a AdminHandler) RegisterRouters(router *gin.RouterGroup) {
 	api := router.Group("/admin")
 	api.Use(a.authMiddleware.CreateHandler(a.authMiddleware.AdminLevel))
 
-	api.GET("/comments", dto.RouteQueryWithDto(a.GetComments)) // 获取需要审核的Comment和 Location
-	api.GET("/locations", dto.RouteQueryWithDto(a.GetLocations))
-	api.GET("/status", dto.RouteQueryWithDto(a.GetStatus))
-	api.PATCH("/comments/:id", dto.RouteQueryWithDto(a.ReviewComment))
-	api.PATCH("/locations/:id", dto.RouteQueryWithDto(a.ReviewLocation))
+	api.GET("/comments", dto.RouteWithDto(a.GetComments)) // 获取需要审核的Comment和 Location
+	api.GET("/locations", dto.RouteWithDto(a.GetLocations))
+	api.GET("/status", dto.RouteWithDto(a.GetStatus))
+	api.PATCH("/comments/:id", dto.RouteWithDto(a.ReviewComment))
+	api.PATCH("/locations/:id", dto.RouteWithDto(a.ReviewLocation))
 }
 
-func (a AdminHandler) GetStatus(ctx *gin.Context, _ dto.Empty) any {
+func (a AdminHandler) GetStatus(ctx *gin.Context, _ dto.EmptyDto) any {
 	return dto.Success(a.adminService.GetAppStatus(ctx))
 }
 

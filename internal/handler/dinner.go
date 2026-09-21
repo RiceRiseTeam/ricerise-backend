@@ -18,13 +18,13 @@ type DinnerHandler struct {
 
 func (h DinnerHandler) RegisterRouters(router *gin.RouterGroup) {
 	api := router.Group("/dinner")
-	api.GET("/list", dto.RouteJsonWithDto(h.ListDinner))
-	api.POST("/likefind", dto.RouteJsonWithDto(h.LikeFind))
+	api.GET("/list", dto.RouteWithDto(h.ListDinner))
+	api.POST("/likefind", dto.RouteWithDto(h.LikeFind))
 	api.GET("/:id/participants", h.ListParticipant)
-	api.POST("/newparticipate", dto.RouteJsonWithDto(h.NewParticipate))
+	api.POST("/newparticipate", dto.RouteWithDto(h.NewParticipate))
 }
 
-func (h DinnerHandler) ListDinner(ctx *gin.Context, _ dto.Empty) any {
+func (h DinnerHandler) ListDinner(ctx *gin.Context, _ dto.EmptyDto) any {
 	result, err := h.dinnerService.List(ctx.Request.Context())
 	if err != nil {
 		_ = ctx.Error(err)
