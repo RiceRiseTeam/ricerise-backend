@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/restayway/gogis"
 	"gorm.io/gorm"
 )
 
@@ -11,8 +12,7 @@ type LocationModel struct {
 
 	Name          string         `gorm:"not null;size:128"`
 	Address       string         `gorm:"not null;size:256"`
-	Longitude     float64        `gorm:"type:decimal(10,6)"`
-	Latitude      float64        `gorm:"type:decimal(10,6)"`
+	Location      gogis.Point    `gorm:"type:geometry(Point,4326);not null"`
 	Reviewed      *bool          `gorm:"not null;default:false"`
 	UserId        uint64         `gorm:"index;not null"`
 	User          UserModel      `gorm:"foreignkey:UserId"`

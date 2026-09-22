@@ -58,8 +58,8 @@ func NewLocationDto(location *model.LocationModel) *LocationDto {
 	return &LocationDto{
 		ID:          location.ID,
 		Name:        location.Name,
-		Longitude:   location.Longitude,
-		Latitude:    location.Latitude,
+		Longitude:   location.Location.Lng,
+		Latitude:    location.Location.Lat,
 		Description: location.Description,
 		CreatedAt:   location.CreatedAt,
 	}

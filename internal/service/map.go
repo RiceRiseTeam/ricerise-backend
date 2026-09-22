@@ -8,11 +8,13 @@ import (
 	"ricerise/internal/dal/query"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
+	"ricerise/internal/logger"
 	"ricerise/internal/middleware"
 	"ricerise/internal/model"
 	"ricerise/internal/repository"
 
 	"github.com/gin-gonic/gin"
+	"github.com/restayway/gogis"
 	"github.com/samber/do/v2"
 	"gorm.io/gorm"
 )
@@ -64,6 +66,29 @@ func (m MapService) DeleteLocation(ctx *gin.Context, id uint64) error {
 		return err
 	}
 	return nil
+}
+
+func (m MapService) GetLocationDetail(ctx *gin.Context, id uint64) (*dto.LocationDto, error) {
+	location, err := m.locationRepository.Where(query.LocationModel.ID.Eq(id)).Preload(query.LocationModel.User.Name(), nil).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.AccessNoFoundError
+		}
+		return nil, err
+	}
+	return dto.NewLocationDto(&location), nil
+}
+
+func (m MapService) GetLocationsInRange(ctx *gin.Context, request request.GetLocationsRequest) ([]*dto.LocationDto, error) {
+	result, err := m.locationRepository.FindAllInRange(ctx.Request.Context(), request.MinLng, request.MinLat, request.MaxLng, request.MaxLat)
+	if err != nil {
+		return nil, err
+	}
+	logger.Info("getLocationsInRange", len(result))
+
+	return dto.Map(result, func(t model.LocationModel) *dto.LocationDto {
+		return dto.NewLocationDto(&t)
+	}), nil
 }
 
 func (m MapService) fetchLocation(ctx context.Context, id uint64) (*model.LocationModel, error) {
@@ -123,10 +148,13 @@ func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocat
 	}
 
 	newLocation := &model.LocationModel{
-		Longitude:   request.Longitude,
-		Latitude:    request.Latitude,
+		Location: gogis.Point{
+			Lng: request.Longitude,
+			Lat: request.Latitude,
+		},
 		Name:        request.Name,
 		Description: request.Description,
+		UserId:      userInfo.UserId,
 	}
 
 	err := m.locationRepository.Create(ctx.Request.Context(), newLocation)
