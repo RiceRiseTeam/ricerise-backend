@@ -11,9 +11,10 @@ import (
 type AppConfig struct {
 	AppPort int `mapstructure:"APP_PORT"`
 
-	MySQLUrl      string `mapstructure:"MYSQL_URL"      validate:"required"`
-	MySQLUser     string `mapstructure:"MYSQL_USER"     validate:"required"`
-	MySQLPassword string `mapstructure:"MYSQL_PASSWORD" validate:"required"`
+	SQLHost     string `mapstructure:"SQL_HOST"      validate:"required"`
+	SQLPort     int    `mapstructure:"SQL_PORT"      validate:"required"`
+	SQLUser     string `mapstructure:"SQL_USER"     validate:"required"`
+	SQLPassword string `mapstructure:"SQL_PASSWORD" validate:"required"`
 
 	RedisUrl      string `mapstructure:"REDIS_URL"      validate:"required"`
 	RedisUser     string `mapstructure:"REDIS_USER"     validate:"required"`

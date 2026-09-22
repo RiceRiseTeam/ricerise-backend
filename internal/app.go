@@ -26,7 +26,7 @@ func init() {
 	root := do.New()
 	// 基础设施
 	do.Provide(root, config.New)
-	do.Provide(root, database.NewMySQL)
+	do.Provide(root, database.NewPostgres)
 	do.Provide(root, cache.NewRedis)
 	// Repo 层
 	do.Provide(root, repository.NewUserRepository)

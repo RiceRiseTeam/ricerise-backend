@@ -1,34 +1,30 @@
 package database
 
 import (
+	"fmt"
 	"ricerise/internal/config"
 	"ricerise/internal/model"
 	"time"
 
-	gomysql "github.com/go-sql-driver/mysql"
 	"github.com/samber/do/v2"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func NewMySQL(injector do.Injector) (*gorm.DB, error) {
+func NewPostgres(injector do.Injector) (*gorm.DB, error) {
 	appConfig := do.MustInvoke[*config.AppConfig](injector)
 
-	mysqlConfig := gomysql.Config{
-		User:      appConfig.MySQLUser,
-		Passwd:    appConfig.MySQLPassword,
-		Net:       "tcp",
-		Addr:      appConfig.MySQLUrl,
-		DBName:    "ricerise",
-		ParseTime: true,
-		Loc:       time.Local,
-		Params: map[string]string{
-			"charset": "utf8mb4",
-		},
-	}
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
+		appConfig.SQLHost,
+		appConfig.SQLUser,
+		appConfig.SQLPassword,
+		"ricerise",
+		appConfig.SQLPort,
+	)
 
-	db, err := gorm.Open(mysql.New(mysql.Config{
-		DSN: mysqlConfig.FormatDSN(),
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN: dsn,
 	}))
 	if err != nil {
 		panic("failed to open mysql connection: " + err.Error())
