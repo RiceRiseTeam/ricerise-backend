@@ -1,0 +1,459 @@
+basePath: /api/v1
+definitions:
+  dto.CommentDto:
+    description: 评论的数据结构
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        format: int64
+        type: integer
+      location:
+        $ref: '#/definitions/dto.LocationDto'
+      rating:
+        type: integer
+      user:
+        $ref: '#/definitions/dto.UserDto'
+    type: object
+  dto.CommonResponse:
+    description: 标准返回体结构
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  dto.LocationDto:
+    description: 地点的数据结构
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        format: int64
+        type: integer
+      latitude:
+        format: float64
+        type: number
+      longitude:
+        format: float64
+        type: number
+      name:
+        type: string
+    type: object
+  dto.UserDto:
+    description: 用户的数据结构
+    properties:
+      createdAt:
+        type: string
+      id:
+        format: int64
+        type: integer
+      nickname:
+        type: string
+      permissionLevel:
+        format: int32
+        type: integer
+      username:
+        type: string
+    type: object
+  request.GetLocationsRequest:
+    description: 获取地点请求结构体
+    properties:
+      max_lat:
+        type: number
+      max_lng:
+        type: number
+      min_lat:
+        type: number
+      min_lng:
+        type: number
+    required:
+    - max_lat
+    - max_lng
+    - min_lat
+    - min_lng
+    type: object
+  request.UploadCommentRequest:
+    description: 上传评论请求结构体
+    properties:
+      content:
+        maxLength: 1024
+        minLength: 1
+        type: string
+      location_id:
+        type: integer
+      rating:
+        type: integer
+    required:
+    - content
+    - location_id
+    - rating
+    type: object
+  request.UploadLocationRequest:
+    description: 上传地点请求结构体
+    properties:
+      address:
+        maxLength: 1024
+        minLength: 2
+        type: string
+      description:
+        maxLength: 1024
+        minLength: 2
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        maxLength: 128
+        minLength: 2
+        type: string
+    required:
+    - address
+    - description
+    - latitude
+    - longitude
+    - name
+    type: object
+  request.UserLoginRequest:
+    description: 用户登录时提交的数据结构
+    properties:
+      password:
+        maxLength: 32
+        minLength: 12
+        type: string
+      user_id:
+        description: 用户标识符 可以是UserName 或是邮箱
+        minLength: 1
+        type: string
+    required:
+    - password
+    - user_id
+    type: object
+  request.UserRegisterRequest:
+    description: 用户注册时提交的数据结构
+    properties:
+      email:
+        type: string
+      nickname:
+        maxLength: 64
+        minLength: 8
+        type: string
+      password:
+        maxLength: 32
+        minLength: 12
+        type: string
+      username:
+        maxLength: 64
+        minLength: 8
+        type: string
+    required:
+    - email
+    - nickname
+    - password
+    - username
+    type: object
+  response.AdminCommentReviewList:
+    description: 管理员评论审核列表响应结构体
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/dto.CommentDto'
+        type: array
+      has_next:
+        type: boolean
+      page_size:
+        type: integer
+    type: object
+  response.AdminLocationReviewList:
+    description: 管理员地点审核列表响应结构体
+    properties:
+      has_next:
+        type: boolean
+      locations:
+        items:
+          $ref: '#/definitions/dto.LocationDto'
+        type: array
+      page_size:
+        type: integer
+    type: object
+info:
+  contact: {}
+  title: RiceRise API
+  version: "1.0"
+paths:
+  /admin/comments:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - in: query
+        maximum: 20
+        minimum: 1
+        name: page_size
+        type: integer
+      - in: query
+        name: start_id
+        type: integer
+      - in: query
+        name: start_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取需要审核的评论列表成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AdminCommentReviewList'
+              type: object
+      summary: 获取需要审核的评论列表
+      tags:
+      - admin
+  /admin/comments/:id:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 评论ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - in: query
+        name: pass
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 审核评论成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 审核评论
+      tags:
+      - admin
+  /admin/locations:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - in: query
+        maximum: 20
+        minimum: 1
+        name: page_size
+        type: integer
+      - in: query
+        name: start_id
+        type: integer
+      - in: query
+        name: start_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取需要审核的地点列表成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AdminLocationReviewList'
+              type: object
+      summary: 获取需要审核的地点列表
+      tags:
+      - admin
+  /admin/locations/:id:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 地点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - in: query
+        name: pass
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 审核地点成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 审核地点
+      tags:
+      - admin
+  /admin/status:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取应用状态成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 获取应用状态
+      tags:
+      - admin
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户登录请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户登录成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 用户登录
+      tags:
+      - user
+  /auth/refresh:
+    post:
+      responses: {}
+      summary: 刷新访问令牌
+      tags:
+      - user
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户注册请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户注册成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 用户注册
+      tags:
+      - user
+  /map/location/:id:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 地点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取地点详情成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 获取地点详情
+      tags:
+      - map
+  /map/location/:id/comments:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 地点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 上传评论请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.UploadCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传评论成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 上传评论
+      tags:
+      - map
+  /map/location/view:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 查询参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.GetLocationsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取指定地点列表成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 获取指定范围内的地点列表
+      tags:
+      - map
+  /map/locations:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 上传地点请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.UploadLocationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 上传地点成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 上传地点
+      tags:
+      - map
+  /sse:
+    get:
+      responses: {}
+      summary: 服务器发送事件
+      tags:
+      - user
+schemes:
+- http
+- https
+swagger: "2.0"

@@ -8,6 +8,8 @@ import (
 
 type EmptyDto struct{}
 
+// CommonResponse 标准返回体
+// @Description 标准返回体结构
 type CommonResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`

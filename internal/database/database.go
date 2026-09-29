@@ -33,7 +33,7 @@ func NewPostgres(injector do.Injector) (*gorm.DB, error) {
 	}
 
 	db.Exec("CREATE EXTENSION IF NOT EXISTS postgis;")
-	db.Exec(fmt.Sprint("CREATE INDEX IF NOT EXISTS idx_pois_location ON location_models USING GIST (location);"))
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_pois_location ON location_models USING GIST (location);")
 
 	sqlDB, err := db.DB()
 	if err != nil {

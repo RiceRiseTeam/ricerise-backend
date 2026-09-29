@@ -4,8 +4,12 @@ import (
 	"ricerise/internal/handler"
 	"ricerise/internal/middleware"
 
+	_ "ricerise/docs"
+
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do/v2"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Router interface {
@@ -14,6 +18,8 @@ type Router interface {
 
 func New(injector do.Injector) (*gin.Engine, error) {
 	engine := gin.New()
+
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	engine.Use(gin.Logger())
 	engine.Use(gin.Recovery())

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// CommentDto 评论结构
+// @Description 评论的数据结构
 type CommentDto struct {
 	ID        uint64
 	Location  *LocationDto
@@ -25,6 +27,8 @@ func NewCommentDto(comment *model.CommentModel) *CommentDto {
 	}
 }
 
+// UserDto 用户结构
+// @Description 用户的数据结构
 type UserDto struct {
 	ID              uint64
 	Username        string
@@ -43,6 +47,8 @@ func NewUserDto(user *model.UserModel) *UserDto {
 	}
 }
 
+// LocationDto 地点结构
+// @Description 地点的数据结构
 type LocationDto struct {
 	ID uint64
 

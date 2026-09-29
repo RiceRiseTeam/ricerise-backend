@@ -33,6 +33,14 @@ func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.POST("/logout", dto.RouteWithDto(h.Logout))
 }
 
+// Register
+// @Summary      用户注册
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        request body request.UserRegisterRequest true "用户注册请求体"
+// @Success      200   {object}  dto.CommonResponse  "用户注册成功"
+// @Router       /auth/register [post]
 func (h UserHandler) Register(ctx *gin.Context, req request.UserRegisterRequest) (any, error) {
 	err := h.userService.Register(ctx, &req)
 	if err != nil {
@@ -41,6 +49,14 @@ func (h UserHandler) Register(ctx *gin.Context, req request.UserRegisterRequest)
 	return dto.Success(nil), nil
 }
 
+// Login
+// @Summary      用户登录
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Param        request body request.UserLoginRequest true "用户登录请求体"
+// @Success      200   {object}  dto.CommonResponse{data=response.UserLoginResponse}  "用户登录成功"
+// @Router       /auth/login [post]
 func (h UserHandler) Login(ctx *gin.Context, req request.UserLoginRequest) (any, error) {
 	token, err := h.userService.Login(ctx, &req)
 	if err != nil {
@@ -56,6 +72,10 @@ func (h UserHandler) Logout(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	return dto.Success(nil), nil
 }
 
+// Refresh
+// @Summary      刷新访问令牌
+// @Tags         user
+// @Router       /auth/refresh [post]
 func (h UserHandler) Refresh(ctx *gin.Context) {
 	oldToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
@@ -68,6 +88,10 @@ func (h UserHandler) Refresh(ctx *gin.Context) {
 	}
 }
 
+// SSE
+// @Summary      服务器发送事件
+// @Tags         user
+// @Router       /sse [get]
 func (h UserHandler) SSE(ctx *gin.Context) {
 	accessToken, err := ctx.Cookie("access_token")
 	if err != nil {
