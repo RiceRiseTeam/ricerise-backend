@@ -244,7 +244,19 @@ const docTemplate = `{
                     "200": {
                         "description": "用户登录成功",
                         "schema": {
-                            "$ref": "#/definitions/dto.CommonResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.UserLoginResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -324,6 +336,64 @@ const docTemplate = `{
             }
         },
         "/map/location/:id/comments": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "map"
+                ],
+                "summary": "获取地点评论列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "地点ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "time",
+                            "rank"
+                        ],
+                        "type": "string",
+                        "name": "ordered_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "start_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "start_rank",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_time",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取地点评论列表成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CommonResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "consumes": [
                     "application/json"
@@ -557,7 +627,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "content",
-                "location_id",
                 "rating"
             ],
             "properties": {
@@ -565,9 +634,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 1024,
                     "minLength": 1
-                },
-                "location_id": {
-                    "type": "integer"
                 },
                 "rating": {
                     "type": "integer"
@@ -691,6 +757,15 @@ const docTemplate = `{
                 },
                 "page_size": {
                     "type": "integer"
+                }
+            }
+        },
+        "response.UserLoginResponse": {
+            "description": "用户登录成功后的返回数据结构",
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
                 }
             }
         }

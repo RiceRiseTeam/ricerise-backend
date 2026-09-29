@@ -85,13 +85,10 @@ definitions:
         maxLength: 1024
         minLength: 1
         type: string
-      location_id:
-        type: integer
       rating:
         type: integer
     required:
     - content
-    - location_id
     - rating
     type: object
   request.UploadLocationRequest:
@@ -181,6 +178,12 @@ definitions:
         type: array
       page_size:
         type: integer
+    type: object
+  response.UserLoginResponse:
+    description: 用户登录成功后的返回数据结构
+    properties:
+      access_token:
+        type: string
     type: object
 info:
   contact: {}
@@ -328,7 +331,12 @@ paths:
         "200":
           description: 用户登录成功
           schema:
-            $ref: '#/definitions/dto.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.UserLoginResponse'
+              type: object
       summary: 用户登录
       tags:
       - user
@@ -380,6 +388,43 @@ paths:
       tags:
       - map
   /map/location/:id/comments:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 地点ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - enum:
+        - time
+        - rank
+        in: query
+        name: ordered_by
+        type: string
+      - in: query
+        name: page_size
+        type: integer
+      - in: query
+        name: start_id
+        type: integer
+      - in: query
+        name: start_rank
+        type: integer
+      - in: query
+        name: start_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取地点评论列表成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 获取地点评论列表
+      tags:
+      - map
     post:
       consumes:
       - application/json

@@ -13,9 +13,8 @@ type UploadLocationRequest struct {
 // UploadCommentRequest 上传评论请求
 // @Description 上传评论请求结构体
 type UploadCommentRequest struct {
-	Rating     int    `json:"rating" binding:"required"`
-	Content    string `json:"content" binding:"required,min=1,max=1024"`
-	LocationId uint64 `json:"location_id" binding:"required"`
+	Rating  int    `json:"rating" binding:"required"`
+	Content string `json:"content" binding:"required,min=1,max=1024"`
 }
 
 // GetLocationsRequest 获取地点请求

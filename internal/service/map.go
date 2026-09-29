@@ -7,8 +7,8 @@ import (
 	"ricerise/internal/config"
 	"ricerise/internal/dal/query"
 	"ricerise/internal/dto"
+	"ricerise/internal/dto/querydto"
 	"ricerise/internal/dto/request"
-	"ricerise/internal/logger"
 	"ricerise/internal/middleware"
 	"ricerise/internal/model"
 	"ricerise/internal/repository"
@@ -84,7 +84,6 @@ func (m MapService) GetLocationsInRange(ctx *gin.Context, request request.GetLoc
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("getLocationsInRange", len(result))
 
 	return dto.Map(result, func(t model.LocationModel) *dto.LocationDto {
 		return dto.NewLocationDto(&t)
@@ -118,8 +117,12 @@ func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommen
 	if userInfo == nil {
 		return nil, apperror.NoAccessTokenError
 	}
+	id, err := dto.GetUrlID(ctx)
+	if err != nil {
+		return nil, apperror.AccessNoFoundError
+	}
 	goContext := ctx.Request.Context()
-	location, err := m.fetchLocation(ctx, request.LocationId)
+	location, err := m.fetchLocation(ctx, id)
 	if location == nil {
 		return nil, err
 	}
@@ -166,6 +169,10 @@ func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocat
 	}
 
 	return dto.NewLocationDto(newLocation), nil
+}
+
+func (m MapService) GetComments(ctx *gin.Context, id uint64, request querydto.MapLocationCommentsQuery) ([]*dto.CommentDto, error) {
+	return nil, nil
 }
 
 func NewMapService(injector do.Injector) (*MapService, error) {

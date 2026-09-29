@@ -4,6 +4,7 @@ import (
 	"ricerise/internal/apperror"
 	"ricerise/internal/config"
 	"ricerise/internal/dto"
+	"ricerise/internal/dto/querydto"
 	"ricerise/internal/dto/request"
 	"ricerise/internal/middleware"
 	"ricerise/internal/service"
@@ -27,8 +28,28 @@ func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.POST("/location/:id/comments", dto.RouteWithDto(m.UploadComment))
 
 	api.GET("/location/:id", dto.RouteWithDto(m.GetLocationDetail))
-	api.GET("/location/:id/comments")
+	api.GET("/location/:id/comments", dto.RouteWithDto(m.GetComments))
+}
 
+// GetComments
+// @Summary      获取地点评论列表
+// @Tags         map
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "地点ID"
+// @Param        query query querydto.MapLocationCommentsQuery false "查询参数"
+// @Success      200   {object}  dto.CommonResponse  "获取地点评论列表成功"
+// @Router       /map/location/:id/comments [get]
+func (m MapHandler) GetComments(ctx *gin.Context, request querydto.MapLocationCommentsQuery) (any, error) {
+	id, err := dto.GetUrlID(ctx)
+	if err != nil {
+		return nil, apperror.AccessNoFoundError
+	}
+	data, err := m.mapService.GetComments(ctx, id, request)
+	if err != nil {
+		return nil, err
+	}
+	return dto.Success(data), nil
 }
 
 // UploadComment
