@@ -38,7 +38,7 @@ func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
 // @Produce      json
 // @Param        id path int true "地点ID"
 // @Param        query query querydto.MapLocationCommentsQuery false "查询参数"
-// @Success      200   {object}  dto.CommonResponse  "获取地点评论列表成功"
+// @Success      200   {object}  dto.CommonResponse{data=[]dto.CommentDto}  "获取地点评论列表成功"
 // @Router       /map/location/:id/comments [get]
 func (m MapHandler) GetComments(ctx *gin.Context, request querydto.MapLocationCommentsQuery) (any, error) {
 	id, err := dto.GetUrlID(ctx)
@@ -91,7 +91,7 @@ func (m MapHandler) UploadLocation(ctx *gin.Context, request request.UploadLocat
 // @Accept       json
 // @Produce      json
 // @Param        id path int true "地点ID"
-// @Success      200   {object}  dto.CommonResponse  "获取地点详情成功"
+// @Success      200   {object}  dto.CommonResponse{data=dto.LocationDto}  "获取地点详情成功"
 // @Router       /map/location/:id [get]
 func (m MapHandler) GetLocationDetail(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	id, err := dto.GetUrlID(ctx)
@@ -112,7 +112,7 @@ func (m MapHandler) GetLocationDetail(ctx *gin.Context, _ dto.EmptyDto) (any, er
 // @Accept       json
 // @Produce      json
 // @Param        request body request.GetLocationsRequest true "查询参数"
-// @Success      200   {object}  dto.CommonResponse  "获取指定地点列表成功"
+// @Success      200   {object}  dto.CommonResponse{data=[]dto.LocationDto}  "获取指定地点列表成功"
 // @Router       /map/location/view [post]
 func (m MapHandler) GetLocationsInRange(ctx *gin.Context, request request.GetLocationsRequest) (any, error) {
 	result, err := m.mapService.GetLocationsInRange(ctx, request)

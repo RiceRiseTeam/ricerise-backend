@@ -179,6 +179,18 @@ definitions:
       page_size:
         type: integer
     type: object
+  response.AdminStatusResponse:
+    description: 管理员状态响应结构体
+    properties:
+      current_dinner:
+        type: integer
+      total_dinner:
+        type: integer
+      total_location:
+        type: integer
+      total_user:
+        type: integer
+    type: object
   response.UserLoginResponse:
     description: 用户登录成功后的返回数据结构
     properties:
@@ -310,7 +322,12 @@ paths:
         "200":
           description: 获取应用状态成功
           schema:
-            $ref: '#/definitions/dto.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AdminStatusResponse'
+              type: object
       summary: 获取应用状态
       tags:
       - admin
@@ -383,7 +400,12 @@ paths:
         "200":
           description: 获取地点详情成功
           schema:
-            $ref: '#/definitions/dto.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.LocationDto'
+              type: object
       summary: 获取地点详情
       tags:
       - map
@@ -421,7 +443,14 @@ paths:
         "200":
           description: 获取地点评论列表成功
           schema:
-            $ref: '#/definitions/dto.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.CommentDto'
+                  type: array
+              type: object
       summary: 获取地点评论列表
       tags:
       - map
@@ -467,7 +496,14 @@ paths:
         "200":
           description: 获取指定地点列表成功
           schema:
-            $ref: '#/definitions/dto.CommonResponse'
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.LocationDto'
+                  type: array
+              type: object
       summary: 获取指定范围内的地点列表
       tags:
       - map

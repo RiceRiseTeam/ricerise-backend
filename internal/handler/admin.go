@@ -35,7 +35,7 @@ func (a AdminHandler) RegisterRouters(router *gin.RouterGroup) {
 // @Tags         admin
 // @Accept       json
 // @Produce      json
-// @Success      200   {object}  dto.CommonResponse  "获取应用状态成功"
+// @Success      200   {object}  dto.CommonResponse{data=response.AdminStatusResponse}  "获取应用状态成功"
 // @Router       /admin/status [get]
 func (a AdminHandler) GetStatus(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	return dto.Success(a.adminService.GetAppStatus(ctx)), nil

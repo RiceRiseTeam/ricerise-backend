@@ -211,7 +211,19 @@ const docTemplate = `{
                     "200": {
                         "description": "获取应用状态成功",
                         "schema": {
-                            "$ref": "#/definitions/dto.CommonResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.AdminStatusResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -329,7 +341,19 @@ const docTemplate = `{
                     "200": {
                         "description": "获取地点详情成功",
                         "schema": {
-                            "$ref": "#/definitions/dto.CommonResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.LocationDto"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -389,7 +413,22 @@ const docTemplate = `{
                     "200": {
                         "description": "获取地点评论列表成功",
                         "schema": {
-                            "$ref": "#/definitions/dto.CommonResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.CommentDto"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -460,7 +499,22 @@ const docTemplate = `{
                     "200": {
                         "description": "获取指定地点列表成功",
                         "schema": {
-                            "$ref": "#/definitions/dto.CommonResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.LocationDto"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -756,6 +810,24 @@ const docTemplate = `{
                     }
                 },
                 "page_size": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.AdminStatusResponse": {
+            "description": "管理员状态响应结构体",
+            "type": "object",
+            "properties": {
+                "current_dinner": {
+                    "type": "integer"
+                },
+                "total_dinner": {
+                    "type": "integer"
+                },
+                "total_location": {
+                    "type": "integer"
+                },
+                "total_user": {
                     "type": "integer"
                 }
             }
