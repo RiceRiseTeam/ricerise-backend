@@ -172,7 +172,29 @@ func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocat
 }
 
 func (m MapService) GetComments(ctx *gin.Context, id uint64, request querydto.MapLocationCommentsQuery) ([]*dto.CommentDto, error) {
-	return nil, nil
+	id, err := dto.GetUrlID(ctx)
+	if err != nil {
+		return nil, apperror.AccessNoFoundError
+	}
+
+	sql := m.commentRepository.Where(query.CommentModel.LocationId.Eq(id)).Preload(query.CommentModel.User.Name(), nil)
+
+	if request.OrderedBy == "time" {
+		if request.StartId != nil {
+			sql = sql.Where(query.CommentModel.ID.Lt(*request.StartId), query.CommentModel.CreatedAt.Lt(*request.StartTime))
+		}
+		sql = sql.Order(query.CommentModel.CreatedAt.Desc()).Order(query.CommentModel.ID.Desc())
+	} else if request.OrderedBy == "rank" {
+		if request.StartId != nil {
+			sql = sql.Where(query.CommentModel.ID.Lt(*request.StartId), query.CommentModel.Rating.Lt(*request.StartRank))
+		}
+		sql = sql.Order(query.CommentModel.Rating.Desc()).Order(query.CommentModel.ID.Desc())
+	}
+
+	result, err := sql.Limit(request.PageSize).Find(ctx.Request.Context())
+	return dto.Map(result, func(t model.CommentModel) *dto.CommentDto {
+		return dto.NewCommentDto(&t)
+	}), err
 }
 
 func NewMapService(injector do.Injector) (*MapService, error) {

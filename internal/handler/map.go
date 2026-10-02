@@ -45,6 +45,14 @@ func (m MapHandler) GetComments(ctx *gin.Context, request querydto.MapLocationCo
 	if err != nil {
 		return nil, apperror.AccessNoFoundError
 	}
+	if request.StartId != nil {
+		if request.OrderedBy == "rank" && request.StartRank == nil {
+			return nil, apperror.ValidationError
+		}
+		if request.OrderedBy == "time" && request.StartTime == nil {
+			return nil, apperror.ValidationError
+		}
+	}
 	data, err := m.mapService.GetComments(ctx, id, request)
 	if err != nil {
 		return nil, err
