@@ -26,7 +26,7 @@ func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
 	auth := router.Group("/auth")
 	auth.POST("/register", dto.RouteWithDto(h.Register))
 	auth.POST("/login", dto.RouteWithDto(h.Login))
-	auth.POST("/refresh", h.Refresh)
+	auth.POST("/refresh", dto.RouteWithDto(h.Refresh))
 
 	api := router.Group("/user")
 	api.Use(h.authMiddleware.CreateHandler(h.authMiddleware.UserLevel))
@@ -76,16 +76,19 @@ func (h UserHandler) Logout(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 // @Summary      刷新访问令牌
 // @Tags         user
 // @Router       /auth/refresh [post]
-func (h UserHandler) Refresh(ctx *gin.Context) {
+func (h UserHandler) Refresh(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	oldToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
-		_ = ctx.Error(apperror.NoRefreshTokenError)
-		return
+		return nil, apperror.NoRefreshTokenError
 	}
-	err = h.userService.Refresh(ctx, oldToken)
+	token, err := h.userService.Refresh(ctx, oldToken)
 	if err != nil {
-		_ = ctx.Error(err)
+		return nil, err
 	}
+
+	return dto.Success(response.UserLoginResponse{
+		AccessToken: token,
+	}), nil
 }
 
 // SSE

@@ -74,24 +74,24 @@ func (h UserService) Login(ctx *gin.Context, request *request.UserLoginRequest) 
 	return accessToken, nil
 }
 
-func (h UserService) Refresh(ctx *gin.Context, oldToken string) error {
+func (h UserService) Refresh(ctx *gin.Context, oldToken string) (string, error) {
 	userInfo := h.auth.ParseRefreshToken(oldToken)
 	if userInfo == nil {
-		return apperror.NoRefreshTokenError
+		return "", apperror.NoRefreshTokenError
 	}
 
-	// TODO(linstarowo): 从数据库验证
-
-	refreshToken, err := h.auth.CreateRefreshToken(userInfo.UserId, userInfo.Username, userInfo.PermissionLevel)
+	user, err := h.repo.Where(query.UserModel.ID.Eq(userInfo.UserId)).First(ctx.Request.Context())
 	if err != nil {
-		return apperror.InternalServerError
+		return "", apperror.NoRefreshTokenError
 	}
 
-	h.setRefreshToken(ctx, refreshToken)
-
+	accessToken, err := h.auth.CreateAccessToken(user.ID, user.Username, middleware.PermissionLevel(user.PermissionLevel))
+	if err != nil {
+		return "", apperror.InternalServerError
+	}
 	// TODO(linstarowo): 使oldToken失效
 
-	return nil
+	return accessToken, nil
 }
 
 func (h UserService) Logout(ctx *gin.Context) {
