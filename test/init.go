@@ -24,6 +24,14 @@ func postRequest[T any](url string, request any) (int, *T) {
 }
 
 func postRequestWithAuth[T any](url string, request any, token string) (int, *T) {
+	return requestWithAuth[T](url, request, token, http.MethodPost)
+}
+
+func getRequestWithAuth[T any](url string, request any, token string) (int, *T) {
+	return requestWithAuth[T](url, request, token, http.MethodGet)
+}
+
+func requestWithAuth[T any](url string, request any, token string, method string) (int, *T) {
 	var buf []byte = nil
 
 	if request != nil {
@@ -34,7 +42,7 @@ func postRequestWithAuth[T any](url string, request any, token string) (int, *T)
 		buf = newBuf
 	}
 
-	req, err := http.NewRequest(http.MethodPost, server.URL+"/api/v1"+url, bytes.NewReader(buf))
+	req, err := http.NewRequest(method, server.URL+"/api/v1"+url, bytes.NewReader(buf))
 	if err != nil {
 		panic(err)
 	}
@@ -54,10 +62,6 @@ func postRequestWithAuth[T any](url string, request any, token string) (int, *T)
 		panic(err)
 	}
 
-	//body, err := io.ReadAll(resp.Body)
-	//if err != nil {
-	//	panic(err)
-	//}
 	if msg.Data == nil {
 		return msg.Code, nil
 	}
