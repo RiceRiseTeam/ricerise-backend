@@ -9,6 +9,7 @@ import (
 	"ricerise/internal/dto/response"
 	"ricerise/internal/middleware"
 	"ricerise/internal/service"
+	"time"
 
 	sse "github.com/dan-sherwin/go-sse"
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,7 @@ type UserHandler struct {
 }
 
 func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
-	router.GET("/sse", h.SSE)
+	router.GET("/sse", h.authMiddleware.CreateHandler(h.authMiddleware.UserLevel), h.SSE)
 
 	auth := router.Group("/auth")
 	auth.POST("/register", dto.RouteWithDto(h.Register))
@@ -96,25 +97,24 @@ func (h UserHandler) Refresh(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 // @Tags         user
 // @Router       /sse [get]
 func (h UserHandler) SSE(ctx *gin.Context) {
-	accessToken, err := ctx.Cookie("access_token")
-	if err != nil {
+	userInfo := h.authMiddleware.GetUserInfo(ctx)
+	if userInfo == nil {
 		_ = ctx.Error(apperror.NoAccessTokenError)
-		return
-	}
-	info := h.authMiddleware.ParseAccessToken(accessToken)
-	if info == nil {
-		_ = ctx.Error(apperror.NoAccessTokenError)
+		ctx.AbortWithStatus(401)
 		return
 	}
 
 	// 生成session 随机字符串
 	session := make([]byte, 16)
-	if _, err = rand.Read(session); err != nil {
-		_ = ctx.Error(err)
+	if _, err := rand.Read(session); err != nil {
+		ctx.AbortWithStatus(500)
 		return
 	}
-
-	sse.NewSessionWithUID(ctx, hex.EncodeToString(session), info.Username)
+	sessionId := hex.EncodeToString(session)
+	sse.NewSessionWithUID(ctx, sessionId, userInfo.Username)
+	time.AfterFunc(5*time.Minute, func() {
+		sse.ShutdownBySessionID(sessionId)
+	})
 }
 
 func NewUserHandler(injector do.Injector) (*UserHandler, error) {

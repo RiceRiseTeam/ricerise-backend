@@ -8,12 +8,12 @@ import (
 // CommentDto 评论结构
 // @Description 评论的数据结构
 type CommentDto struct {
-	ID        uint64
-	Location  *LocationDto
-	User      *UserDto
-	Rating    int
-	Content   string
-	CreatedAt time.Time
+	ID        uint64       `json:"id"`
+	Location  *LocationDto `json:"location"`
+	User      *UserDto     `json:"user"`
+	Rating    int          `json:"rating"`
+	Content   string       `json:"content"`
+	CreatedAt time.Time    `json:"createdAt"`
 }
 
 func NewCommentDto(comment *model.CommentModel) *CommentDto {
@@ -30,11 +30,11 @@ func NewCommentDto(comment *model.CommentModel) *CommentDto {
 // UserDto 用户结构
 // @Description 用户的数据结构
 type UserDto struct {
-	ID              uint64
-	Username        string
-	Nickname        string
-	PermissionLevel int8
-	CreatedAt       time.Time
+	ID              uint64    `json:"id"`
+	Username        string    `json:"username"`
+	Nickname        string    `json:"nickname"`
+	PermissionLevel int8      `json:"permissionLevel"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 func NewUserDto(user *model.UserModel) *UserDto {
@@ -50,23 +50,47 @@ func NewUserDto(user *model.UserModel) *UserDto {
 // LocationDto 地点结构
 // @Description 地点的数据结构
 type LocationDto struct {
-	ID uint64
+	ID uint64 `json:"id"`
 
-	Name        string
-	Longitude   float64
-	Latitude    float64
-	Description string
+	Name        string  `json:"name"`
+	Address     string  `json:"address"`
+	Longitude   float64 `json:"longitude"`
+	Latitude    float64 `json:"latitude"`
+	Description string  `json:"description"`
 
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func NewLocationDto(location *model.LocationModel) *LocationDto {
 	return &LocationDto{
 		ID:          location.ID,
 		Name:        location.Name,
+		Address:     location.Address,
 		Longitude:   location.Location.Lng,
 		Latitude:    location.Location.Lat,
 		Description: location.Description,
 		CreatedAt:   location.CreatedAt,
+	}
+}
+
+type DinnerDto struct {
+	ID           uint64       `json:"id"`
+	Location     *LocationDto `json:"location"`
+	Host         *UserDto     `json:"host"`
+	Participants []*UserDto   `json:"participants"`
+	MaxPeople    int          `json:"max"`
+	CreatedAt    time.Time    `json:"createdAt"`
+}
+
+func NewDinnerDto(dinner *model.DinnerModel) *DinnerDto {
+	return &DinnerDto{
+		ID:        dinner.ID,
+		Location:  NewLocationDto(&dinner.Location),
+		Host:      NewUserDto(&dinner.Host),
+		MaxPeople: dinner.MaxPeople,
+		CreatedAt: dinner.CreatedAt,
+		Participants: Map(dinner.Participants, func(m model.ParticipantModel) *UserDto {
+			return NewUserDto(&m.User)
+		}),
 	}
 }
