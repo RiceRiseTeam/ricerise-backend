@@ -158,6 +158,7 @@ func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocat
 		Name:        request.Name,
 		Description: request.Description,
 		UserId:      userInfo.UserId,
+		Address:     request.Address,
 	}
 
 	err := m.locationRepository.Create(ctx.Request.Context(), newLocation)

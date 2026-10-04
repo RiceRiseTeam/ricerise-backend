@@ -127,7 +127,7 @@ func (m MapHandler) GetLocationsInRange(ctx *gin.Context, request request.GetLoc
 	if err != nil {
 		return nil, err
 	}
-	return dto.Created(result), nil
+	return dto.Success(result), nil
 }
 
 func NewMapHandler(injector do.Injector) (*MapHandler, error) {

@@ -35,6 +35,8 @@ func init() {
 	do.Provide(root, repository.NewParticipantRepository)
 	do.Provide(root, repository.NewCommentRepository)
 
+	do.Provide(root, repository.NewTransactionManager)
+
 	// Service 层
 	do.Provide(root, service.NewDinnerService)
 	do.Provide(root, service.NewCacheService)

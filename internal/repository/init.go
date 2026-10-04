@@ -13,7 +13,7 @@ type TransactionManager struct {
 	db *gorm.DB
 }
 
-func (m TransactionManager) Do(f func(t *gorm.DB) error) error {
+func (m TransactionManager) Do(f func(tx *gorm.DB) error) error {
 	return m.db.Transaction(f)
 }
 

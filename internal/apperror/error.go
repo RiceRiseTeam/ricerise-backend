@@ -57,3 +57,8 @@ var UserNameConflictError = &AppError{
 	Code:    40901,
 	Message: "用户名已存在",
 }
+
+var DinnerConflictError = &AppError{
+	Code:    40902,
+	Message: "已有进行中的约饭!",
+}
