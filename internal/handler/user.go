@@ -59,12 +59,13 @@ func (h UserHandler) Register(ctx *gin.Context, req request.UserRegisterRequest)
 // @Success      200   {object}  dto.CommonResponse{data=response.UserLoginResponse}  "用户登录成功"
 // @Router       /auth/login [post]
 func (h UserHandler) Login(ctx *gin.Context, req request.UserLoginRequest) (any, error) {
-	token, err := h.userService.Login(ctx, &req)
+	user, token, err := h.userService.Login(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
 	return dto.Success(&response.UserLoginResponse{
 		AccessToken: token,
+		User:        user,
 	}), nil
 }
 
