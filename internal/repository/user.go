@@ -12,6 +12,13 @@ type UserRepository struct {
 	db *gorm.DB
 }
 
+func (u UserRepository) WithTx(tx *gorm.DB) *UserRepository {
+	return &UserRepository{
+		Interface: gorm.G[model.UserModel](tx),
+		db:        tx,
+	}
+}
+
 func NewUserRepository(injector do.Injector) (*UserRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 

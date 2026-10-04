@@ -16,6 +16,13 @@ type LocationRepository struct {
 	db *gorm.DB
 }
 
+func (l LocationRepository) WithTx(tx *gorm.DB) *LocationRepository {
+	return &LocationRepository{
+		Interface: gorm.G[model.LocationModel](tx),
+		db:        tx,
+	}
+}
+
 func (l LocationRepository) FindNotReviewedOrderedByCreatedAt(ctx context.Context, pageSize int, startId *uint64, startTime *time.Time) ([]*model.LocationModel, error) {
 	var result []*model.LocationModel
 	var reviewed = false

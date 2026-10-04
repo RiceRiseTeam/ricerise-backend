@@ -12,6 +12,13 @@ type ParticipantRepository struct {
 	db *gorm.DB
 }
 
+func (p ParticipantRepository) WithTx(tx *gorm.DB) *ParticipantRepository {
+	return &ParticipantRepository{
+		Interface: gorm.G[model.ParticipantModel](tx),
+		db:        tx,
+	}
+}
+
 func NewParticipantRepository(injector do.Injector) (*ParticipantRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 

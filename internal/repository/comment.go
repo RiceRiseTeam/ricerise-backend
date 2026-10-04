@@ -29,6 +29,13 @@ func (l CommentRepository) FindNotReviewedOrderedByCreatedAt(ctx context.Context
 	return result, query.Error
 }
 
+func (l CommentRepository) WithTx(tx *gorm.DB) *CommentRepository {
+	return &CommentRepository{
+		Interface: gorm.G[model.CommentModel](tx),
+		db:        tx,
+	}
+}
+
 func NewCommentRepository(injector do.Injector) (*CommentRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 	return &CommentRepository{

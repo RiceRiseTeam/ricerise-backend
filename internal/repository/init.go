@@ -1,5 +1,29 @@
 package repository
 
+import (
+	"github.com/samber/do/v2"
+	"gorm.io/gorm"
+)
+
+type TransactionProvider[T any] interface {
+	WithTx(tx *gorm.DB) *T
+}
+
+type TransactionManager struct {
+	db *gorm.DB
+}
+
+func (m TransactionManager) Do(f func(t *gorm.DB) error) error {
+	return m.db.Transaction(f)
+}
+
+func NewTransactionManager(injector do.Injector) (*TransactionManager, error) {
+	db := do.MustInvoke[*gorm.DB](injector)
+	return &TransactionManager{
+		db: db,
+	}, nil
+}
+
 //type QueryArgs func(db *gorm.DB) *gorm.DB
 //
 //type BaseRepository[T any] struct {

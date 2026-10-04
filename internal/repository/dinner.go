@@ -13,6 +13,13 @@ type DinnerRepository struct {
 	db *gorm.DB
 }
 
+func (r DinnerRepository) WithTx(tx *gorm.DB) *DinnerRepository {
+	return &DinnerRepository{
+		Interface: gorm.G[model.DinnerModel](tx),
+		db:        tx,
+	}
+}
+
 func NewDinnerRepository(injector do.Injector) (*DinnerRepository, error) {
 	db := do.MustInvoke[*gorm.DB](injector)
 
