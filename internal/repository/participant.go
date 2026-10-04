@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"context"
+	"errors"
+	"ricerise/internal/dal/query"
 	"ricerise/internal/model"
 
 	"github.com/samber/do/v2"
@@ -17,6 +20,17 @@ func (p ParticipantRepository) WithTx(tx *gorm.DB) *ParticipantRepository {
 		Interface: gorm.G[model.ParticipantModel](tx),
 		db:        tx,
 	}
+}
+
+func (p ParticipantRepository) IsParticipant(ctx context.Context, userId uint64, dinnerId uint64) (bool, error) {
+	_, err := p.Interface.Where(query.ParticipantModel.DinnerId.Eq(dinnerId), query.ParticipantModel.UserId.Eq(userId)).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func NewParticipantRepository(injector do.Injector) (*ParticipantRepository, error) {

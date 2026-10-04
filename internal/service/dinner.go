@@ -28,36 +28,45 @@ type DinnerService struct {
 
 func (d DinnerService) UpdateDinnerStatus(ctx *gin.Context, userId uint64, dinnerId uint64, status int8) error {
 	goContext := ctx.Request.Context()
-	participated, err := d.participantRepo.IsParticipant(goContext, userId, dinnerId)
+	dinner, err := d.dinnerRepo.Where(query.DinnerModel.ID.Eq(dinnerId)).First(goContext)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperror.AccessNoFoundError
+		}
 		return err
 	}
-	if !participated {
-		return apperror.AccessNoFoundError
+
+	if dinner.HostId != userId {
+		return apperror.NoPermissionError
 	}
 
 	_, err = d.dinnerRepo.Where(query.DinnerModel.ID.Eq(dinnerId)).Set(query.DinnerModel.Status.Set(status)).Update(goContext)
 	return err
 }
 
-func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint64) error {
+func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint64) (*dto.DinnerDto, error) {
 	goContext := ctx.Request.Context()
-	dinner, err := d.getCurrentDinners(goContext, userId)
+	dinners, err := d.getCurrentDinners(goContext, userId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if len(dinner) > 3 {
-		return apperror.DinnerConflictError
+	if len(dinners) > 3 {
+		return nil, apperror.DinnerConflictError
 	}
 
-	return d.transactionManager.Do(func(tx *gorm.DB) error {
-		targetDinner, err := d.dinnerRepo.WithTx(tx).Where(query.DinnerModel.ID.Eq(dinnerId), query.DinnerModel.Status.Eq(model.DINNER_HIRING)).First(goContext)
+	var dinner *model.DinnerModel = nil
+
+	err = d.transactionManager.Do(func(tx *gorm.DB) error {
+		targetDinner, err := d.dinnerRepo.WithTx(tx).
+			Where(query.DinnerModel.ID.Eq(dinnerId), query.DinnerModel.Status.Eq(model.DINNER_HIRING)).
+			Preload(query.DinnerModel.Host.Name(), nil).Preload(query.DinnerModel.Participants.Name(), nil).First(goContext)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return apperror.AccessNoFoundError
 			}
 			return err
 		}
+		dinner = &targetDinner
 		err = d.participantRepo.WithTx(tx).Create(goContext, &model.ParticipantModel{
 			UserId:   userId,
 			DinnerId: dinnerId,
@@ -77,6 +86,12 @@ func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	_ = d.broadcastMessage(ctx, userId, dinnerId, "toast", dto.ToastSSE{Message: fmt.Sprintf("用户%s 加入了饭局")})
+	return dto.NewDinnerDto(dinner), nil
 }
 
 func (d DinnerService) ExistDinner(ctx *gin.Context, userId uint64, dinnerId uint64) error {
