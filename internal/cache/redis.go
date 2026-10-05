@@ -15,7 +15,7 @@ func NewRedis(injector do.Injector) (*redis.Client, error) {
 		Addr:         appConfig.RedisUrl,
 		Username:     appConfig.RedisUser,
 		Password:     appConfig.RedisPassword,
-		DB:           1,
+		DB:           0,
 		PoolSize:     20,
 		MinIdleConns: 5,
 		ReadTimeout:  time.Second,

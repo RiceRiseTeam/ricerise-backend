@@ -26,8 +26,29 @@ func (h DinnerHandler) RegisterRouters(router *gin.RouterGroup) {
 	api.POST("/:id/participants/", dto.RouteWithDto(h.JointDinner))
 	api.DELETE("/:id/participants/me", dto.RouteWithDto(h.LeftDinner))
 	api.PATCH("/:id/", dto.RouteWithDto(h.UpdateDinnerStatus))
+	api.GET("/:id", dto.RouteWithDto(h.GetDinnerDetail))
 	api.POST("/:id/messages", dto.RouteWithDto(h.DinnerRoomChat))
 	api.GET("/:id/code", dto.RouteWithDto(h.GenerateInviteCode))
+}
+
+// GetDinnerDetail
+// @Summary      获取饭局详情
+// @Tags         dinner
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "饭局ID"
+// @Success      200   {object}  dto.CommonResponse{data=dto.DinnerDto}  "获取饭局详情成功"
+// @Router       /dinners/:id [get]
+func (h DinnerHandler) GetDinnerDetail(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
+	dinnerId, err := dto.GetUrlID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	data, err := h.dinnerService.GetDinnerDetail(ctx, dinnerId)
+	if err != nil {
+		return nil, err
+	}
+	return dto.Success(data), nil
 }
 
 // DinnerRoomChat
@@ -83,9 +104,10 @@ func (h DinnerHandler) CreateDinner(ctx *gin.Context, request request.CreateDinn
 // @Accept       json
 // @Produce      json
 // @Param        id path int true "饭局ID"
+// @Param        request body request.JoinDinnerRequest true "加入饭局请求体"
 // @Success      200   {object}  dto.CommonResponse{data=dto.DinnerDto}  "加入饭局成功"
 // @Router       /dinners/:id/participants/ [post]
-func (h DinnerHandler) JointDinner(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
+func (h DinnerHandler) JointDinner(ctx *gin.Context, request request.JoinDinnerRequest) (any, error) {
 	dinnerId, err := dto.GetUrlID(ctx)
 	if err != nil {
 		return nil, err
@@ -94,7 +116,7 @@ func (h DinnerHandler) JointDinner(ctx *gin.Context, _ dto.EmptyDto) (any, error
 	if userInfo == nil {
 		return nil, apperror.NoAccessTokenError
 	}
-	result, err := h.dinnerService.JoinDinner(ctx, userInfo.UserId, dinnerId)
+	result, err := h.dinnerService.JoinDinner(ctx, userInfo.UserId, dinnerId, request.Code)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +174,14 @@ func (h DinnerHandler) UpdateDinnerStatus(ctx *gin.Context, request request.Upda
 	return dto.Success(nil), err
 }
 
+// GenerateInviteCode
+// @Summary      生成饭局邀请码
+// @Tags         dinner
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "饭局ID"
+// @Success      200   {object}  dto.CommonResponse{data=response.InviteCodeResponse}  "创建邀请码成功"
+// @Router       /dinners/:id/code [get]
 func (h DinnerHandler) GenerateInviteCode(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
 	dinnerId, err := dto.GetUrlID(ctx)
 	if err != nil {

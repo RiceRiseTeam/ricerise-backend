@@ -46,6 +46,11 @@ var AccessNoFoundError = &AppError{
 	Message: "记录不存在",
 }
 
+var InviteCodeNotFoundError = &AppError{
+	Code:    40401,
+	Message: "邀请码不存在或已失效",
+}
+
 // 409XX 冲突问题
 
 var NameConflictError = &AppError{
@@ -61,4 +66,9 @@ var UserNameConflictError = &AppError{
 var DinnerConflictError = &AppError{
 	Code:    40902,
 	Message: "已有进行中的约饭!",
+}
+
+var ParticipantConflictError = &AppError{
+	Code:    40903,
+	Message: "你已经加入饭局了!",
 }

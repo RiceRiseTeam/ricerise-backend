@@ -2,6 +2,9 @@ package request
 
 import "time"
 
+type JoinDinnerRequest struct {
+	Code string `json:"code"`
+}
 type CreateDinnerRequest struct {
 	LocationId uint64    `json:"location_id" binding:"required"`
 	MeetTime   time.Time `json:"meet_time" binding:"required"`

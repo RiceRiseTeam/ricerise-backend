@@ -79,6 +79,8 @@ type DinnerDto struct {
 	Host         *UserDto     `json:"host"`
 	Participants []*UserDto   `json:"participants"`
 	MaxPeople    int          `json:"max"`
+	MeetTime     time.Time    `json:"meet_time"`
+	Status       int8         `json:"status"`
 	CreatedAt    time.Time    `json:"createdAt"`
 }
 
@@ -89,6 +91,8 @@ func NewDinnerDto(dinner *model.DinnerModel) *DinnerDto {
 		Host:      NewUserDto(&dinner.Host),
 		MaxPeople: dinner.MaxPeople,
 		CreatedAt: dinner.CreatedAt,
+		MeetTime:  dinner.MeetTime,
+		Status:    dinner.Status,
 		Participants: Map(dinner.Participants, func(m model.ParticipantModel) *UserDto {
 			return NewUserDto(&m.User)
 		}),

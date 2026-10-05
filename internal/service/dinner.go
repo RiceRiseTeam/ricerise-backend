@@ -73,7 +73,7 @@ func (d DinnerService) GenerateInviteCode(ctx *gin.Context, userId uint64, dinne
 		redisInviteCode + inviteCode,
 	}
 
-	result, err := dinnerGenerateCodeScript.Run(goContext, d.redisClient, keys, strconv.FormatUint(dinnerId, 10), inviteCode, (5 * time.Minute).Seconds(), redisInviteCode).Int()
+	result, err := dinnerGenerateCodeScript.Run(goContext, d.redisClient, keys, dinnerId, inviteCode, (5 * time.Minute).Seconds(), redisInviteCode).Int()
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +103,33 @@ func (d DinnerService) UpdateDinnerStatus(ctx *gin.Context, userId uint64, dinne
 	return err
 }
 
-func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint64) (*dto.DinnerDto, error) {
+func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint64, code string) (*dto.DinnerDto, error) {
 	goContext := ctx.Request.Context()
-	dinners, err := d.getCurrentDinners(goContext, userId)
+	codeDinnerId, err := d.redisClient.Get(goContext, redisInviteCode+code).Uint64()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, apperror.InviteCodeNotFoundError
+		}
+		return nil, err
+	}
+
+	if codeDinnerId != dinnerId {
+		return nil, apperror.InternalServerError
+	}
+
+	dinner, err := d.joinDinner(goContext, userId, dinnerId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, apperror.ParticipantConflictError
+		}
+		return nil, err
+	}
+
+	return dto.NewDinnerDto(dinner), nil
+}
+
+func (d DinnerService) joinDinner(ctx context.Context, userId uint64, dinnerId uint64) (*model.DinnerModel, error) {
+	dinners, err := d.getCurrentDinners(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +142,7 @@ func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint
 	err = d.transactionManager.Do(func(tx *gorm.DB) error {
 		targetDinner, err := d.dinnerRepo.WithTx(tx).
 			Where(query.DinnerModel.ID.Eq(dinnerId), query.DinnerModel.Status.Eq(model.DINNER_HIRING)).
-			Preload(query.DinnerModel.Host.Name(), nil).Preload(query.DinnerModel.Participants.Name(), nil).First(goContext)
+			Preload(query.DinnerModel.Host.Name(), nil).Preload(query.DinnerModel.Participants.Name(), nil).First(ctx)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return apperror.AccessNoFoundError
@@ -126,7 +150,7 @@ func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint
 			return err
 		}
 		dinner = &targetDinner
-		err = d.participantRepo.WithTx(tx).Create(goContext, &model.ParticipantModel{
+		err = d.participantRepo.WithTx(tx).Create(ctx, &model.ParticipantModel{
 			UserId:   userId,
 			DinnerId: dinnerId,
 		})
@@ -134,13 +158,13 @@ func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint
 			return err
 		}
 
-		count, err := d.participantRepo.WithTx(tx).Where(query.ParticipantModel.DinnerId.Eq(dinnerId)).Count(goContext, query.ParticipantModel.ID.Column().Name)
+		count, err := d.participantRepo.WithTx(tx).Where(query.ParticipantModel.DinnerId.Eq(dinnerId)).Count(ctx, query.ParticipantModel.ID.Column().Name)
 		if err != nil {
 			return err
 		}
 
 		if int(count) >= targetDinner.MaxPeople {
-			_, err = d.dinnerRepo.WithTx(tx).Where(query.DinnerModel.ID.Eq(targetDinner.ID)).Set(query.DinnerModel.Status.Set(model.DINNER_FULL)).Update(goContext)
+			_, err = d.dinnerRepo.WithTx(tx).Where(query.DinnerModel.ID.Eq(targetDinner.ID)).Set(query.DinnerModel.Status.Set(model.DINNER_FULL)).Update(ctx)
 			return err
 		}
 		return nil
@@ -150,7 +174,7 @@ func (d DinnerService) JoinDinner(ctx *gin.Context, userId uint64, dinnerId uint
 	}
 
 	_ = d.broadcastMessage(ctx, userId, dinnerId, "toast", dto.ToastSSE{Message: fmt.Sprintf("用户%s 加入了饭局")})
-	return dto.NewDinnerDto(dinner), nil
+	return dinner, nil
 }
 
 func (d DinnerService) ExistDinner(ctx *gin.Context, userId uint64, dinnerId uint64) error {
@@ -290,6 +314,21 @@ func (d DinnerService) GetDinnerList(ctx *gin.Context, userId uint64) ([]*dto.Di
 	}), nil
 }
 
+func (d DinnerService) GetDinnerDetail(ctx *gin.Context, dinnerId uint64) (*dto.DinnerDto, error) {
+	dinner, err := d.dinnerRepo.Where(query.DinnerModel.ID.Eq(dinnerId)).
+		Preload(query.DinnerModel.Participants.Name(), nil).
+		Preload(query.DinnerModel.Host.Name(), nil).
+		Preload(query.DinnerModel.Location.Name(), nil).First(ctx.Request.Context())
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.AccessNoFoundError
+		}
+		return nil, err
+	}
+
+	return dto.NewDinnerDto(&dinner), nil
+}
+
 func (d DinnerService) getCurrentDinners(ctx context.Context, userId uint64) ([]model.DinnerModel, error) {
 	sub := d.participantRepo.
 		Select(query.ParticipantModel.DinnerId.Column().Name).
@@ -312,10 +351,11 @@ func (d DinnerService) getCurrentDinners(ctx context.Context, userId uint64) ([]
 
 func NewDinnerService(injector do.Injector) (*DinnerService, error) {
 	return &DinnerService{
-		dinnerRepo:      do.MustInvoke[*repository.DinnerRepository](injector),
-		participantRepo: do.MustInvoke[*repository.ParticipantRepository](injector),
-		userRepo:        do.MustInvoke[*repository.UserRepository](injector),
-		appConfig:       do.MustInvoke[*config.AppConfig](injector),
-		redisClient:     do.MustInvoke[*redis.Client](injector),
+		dinnerRepo:         do.MustInvoke[*repository.DinnerRepository](injector),
+		participantRepo:    do.MustInvoke[*repository.ParticipantRepository](injector),
+		transactionManager: do.MustInvoke[*repository.TransactionManager](injector),
+		userRepo:           do.MustInvoke[*repository.UserRepository](injector),
+		appConfig:          do.MustInvoke[*config.AppConfig](injector),
+		redisClient:        do.MustInvoke[*redis.Client](injector),
 	}, nil
 }
