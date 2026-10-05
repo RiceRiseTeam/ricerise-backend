@@ -23,6 +23,23 @@ type UserService struct {
 	appConfig *config.AppConfig
 }
 
+func (h UserService) GetCurrentUser(ctx *gin.Context) (*dto.UserDto, error) {
+	userInfo := h.auth.GetUserInfo(ctx)
+	if userInfo == nil {
+		return nil, apperror.NoAccessTokenError
+	}
+
+	user, err := h.repo.Where(query.UserModel.ID.Eq(userInfo.UserId)).First(ctx.Request.Context())
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.AccessNoFoundError
+		}
+		return nil, err
+	}
+
+	return dto.NewUserDto(&user), nil
+}
+
 func (h UserService) Register(ctx *gin.Context, request *request.UserRegisterRequest) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(request.Password), 12)
 	if err != nil {

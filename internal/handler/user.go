@@ -32,6 +32,23 @@ func (h UserHandler) RegisterRouters(router *gin.RouterGroup) {
 	api := router.Group("/user")
 	api.Use(h.authMiddleware.CreateHandler(h.authMiddleware.UserLevel))
 	api.POST("/logout", dto.RouteWithDto(h.Logout))
+	api.GET("/me", dto.RouteWithDto(h.GetMe))
+}
+
+// GetMe
+// @Summary      获取当前用户信息
+// @Tags         user
+// @Accept       json
+// @Produce      json
+// @Success      200   {object}  dto.CommonResponse{data=dto.UserDto}  "成功"
+// @Router       /user/me [get]
+func (h UserHandler) GetMe(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
+	user, err := h.userService.GetCurrentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.Success(user), nil
 }
 
 // Register
