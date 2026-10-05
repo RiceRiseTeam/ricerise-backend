@@ -11,3 +11,7 @@ type DinnerFindResponse struct {
 type ParticipantFindResponse struct {
 	Result []model.ParticipantModel `json:"result"`
 }
+
+type InviteCodeResponse struct {
+	Code string `json:"code"`
+}

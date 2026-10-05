@@ -4,6 +4,7 @@ import (
 	"ricerise/internal/apperror"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
+	"ricerise/internal/dto/response"
 	"ricerise/internal/middleware"
 	"ricerise/internal/service"
 
@@ -19,12 +20,14 @@ type DinnerHandler struct {
 func (h DinnerHandler) RegisterRouters(router *gin.RouterGroup) {
 	api := router.Group("/dinners")
 	api.Use(h.auth.CreateHandler(h.auth.UserLevel))
-	router.POST("/", dto.RouteWithDto(h.CreateDinner))
+	api.POST("/", dto.RouteWithDto(h.CreateDinner))
+	api.GET("/", dto.RouteWithDto(h.GetDinnerList))
 
-	router.POST("/:id/participants/", dto.RouteWithDto(h.JointDinner))
-	router.DELETE("/:id/participants/me", dto.RouteWithDto(h.LeftDinner))
-	router.PATCH("/:id/", dto.RouteWithDto(h.UpdateDinnerStatus))
-	router.POST("/:id/messages", dto.RouteWithDto(h.DinnerRoomChat))
+	api.POST("/:id/participants/", dto.RouteWithDto(h.JointDinner))
+	api.DELETE("/:id/participants/me", dto.RouteWithDto(h.LeftDinner))
+	api.PATCH("/:id/", dto.RouteWithDto(h.UpdateDinnerStatus))
+	api.POST("/:id/messages", dto.RouteWithDto(h.DinnerRoomChat))
+	api.GET("/:id/code", dto.RouteWithDto(h.GenerateInviteCode))
 }
 
 // DinnerRoomChat
@@ -35,7 +38,7 @@ func (h DinnerHandler) RegisterRouters(router *gin.RouterGroup) {
 // @Param        id path int true "饭局ID"
 // @Param        request body request.DinnerRoomChatRequest true "饭局聊天请求体"
 // @Success      200   {object}  dto.CommonResponse  "发送消息成功"
-// @Router       /dinners/:id [patch]
+// @Router       /dinners/:id/messages [post]
 func (h DinnerHandler) DinnerRoomChat(ctx *gin.Context, request request.DinnerRoomChatRequest) (any, error) {
 	userInfo := h.auth.GetUserInfo(ctx)
 	if userInfo == nil {
@@ -60,7 +63,7 @@ func (h DinnerHandler) DinnerRoomChat(ctx *gin.Context, request request.DinnerRo
 // @Produce      json
 // @Param        request body request.CreateDinnerRequest true "创建饭局请求体"
 // @Success      200   {object}  dto.CommonResponse{data=dto.DinnerDto}  "修改状态成功"
-// @Router       /dinners/:id [patch]
+// @Router       /dinners [post]
 func (h DinnerHandler) CreateDinner(ctx *gin.Context, request request.CreateDinnerRequest) (any, error) {
 	userInfo := h.auth.GetUserInfo(ctx)
 	if userInfo == nil {
@@ -147,6 +150,42 @@ func (h DinnerHandler) UpdateDinnerStatus(ctx *gin.Context, request request.Upda
 		return nil, err
 	}
 	return dto.Success(nil), err
+}
+
+func (h DinnerHandler) GenerateInviteCode(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
+	dinnerId, err := dto.GetUrlID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	userInfo := h.auth.GetUserInfo(ctx)
+	if userInfo == nil {
+		return nil, apperror.NoAccessTokenError
+	}
+	code, err := h.dinnerService.GenerateInviteCode(ctx, userInfo.UserId, dinnerId)
+	if err != nil {
+		return nil, err
+	}
+	return dto.Success(&response.InviteCodeResponse{Code: *code}), nil
+}
+
+// GetDinnerList
+// @Summary      获取未结束/取消的饭局
+// @Tags         dinner
+// @Accept       json
+// @Produce      json
+// @Success      200   {object}  dto.CommonResponse{data=dto.DinnerDto}  "成功"
+// @Router       /dinners [get]
+func (h DinnerHandler) GetDinnerList(ctx *gin.Context, _ dto.EmptyDto) (any, error) {
+	userInfo := h.auth.GetUserInfo(ctx)
+	if userInfo == nil {
+		return nil, apperror.NoAccessTokenError
+	}
+	result, err := h.dinnerService.GetDinnerList(ctx, userInfo.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.Success(result), nil
 }
 
 func NewDinnerHandler(injector do.Injector) (*DinnerHandler, error) {

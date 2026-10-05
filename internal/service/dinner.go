@@ -9,14 +9,39 @@ import (
 	"ricerise/internal/dal/query"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
+	"ricerise/internal/logger"
 	"ricerise/internal/model"
 	"ricerise/internal/repository"
+	"strconv"
+	"time"
+	"uuid"
 
 	sse "github.com/dan-sherwin/go-sse"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
 	"gorm.io/gorm"
 )
+
+const redisInviteCode = "invite:"
+const redisDinnerInviteCode = "dinner:invite:"
+
+// dinnerGenerateCodeScript KEYS: [dinner -> code, code -> dinner] args:[dinnerId, inviteCode, ttl, redisInviteCode]
+var dinnerGenerateCodeScript = redis.NewScript(`
+if redis.call('EXISTS', KEYS[2]) == 1 then
+    return 0
+end
+
+local oldCode = redis.call('GET', KEYS[1])
+if oldCode then
+    redis.call('DEL', ARGV[4] .. oldCode)
+end
+
+redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[3])
+
+return 1
+`)
 
 type DinnerService struct {
 	dinnerRepo         *repository.DinnerRepository
@@ -24,6 +49,38 @@ type DinnerService struct {
 	transactionManager *repository.TransactionManager
 	userRepo           *repository.UserRepository
 	appConfig          *config.AppConfig
+	redisClient        *redis.Client
+}
+
+func (d DinnerService) GenerateInviteCode(ctx *gin.Context, userId uint64, dinnerId uint64) (*string, error) {
+	goContext := ctx.Request.Context()
+	dinner, err := d.dinnerRepo.Where(query.DinnerModel.ID.Eq(dinnerId)).First(goContext)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.AccessNoFoundError
+		}
+		return nil, err
+	}
+
+	if dinner.HostId != userId {
+		return nil, apperror.NoPermissionError
+	}
+
+	var inviteCode = uuid.New().String()
+
+	keys := []string{
+		redisDinnerInviteCode + strconv.FormatUint(dinnerId, 10),
+		redisInviteCode + inviteCode,
+	}
+
+	result, err := dinnerGenerateCodeScript.Run(goContext, d.redisClient, keys, strconv.FormatUint(dinnerId, 10), inviteCode, (5 * time.Minute).Seconds(), redisInviteCode).Int()
+	if err != nil {
+		return nil, err
+	}
+	if result == 0 {
+		return d.GenerateInviteCode(ctx, userId, dinnerId)
+	}
+	return &inviteCode, nil
 }
 
 func (d DinnerService) UpdateDinnerStatus(ctx *gin.Context, userId uint64, dinnerId uint64, status int8) error {
@@ -39,6 +96,8 @@ func (d DinnerService) UpdateDinnerStatus(ctx *gin.Context, userId uint64, dinne
 	if dinner.HostId != userId {
 		return apperror.NoPermissionError
 	}
+
+	//TODO: 确认操作合法性
 
 	_, err = d.dinnerRepo.Where(query.DinnerModel.ID.Eq(dinnerId)).Set(query.DinnerModel.Status.Set(status)).Update(goContext)
 	return err
@@ -194,6 +253,8 @@ func (d DinnerService) CreateDinner(ctx *gin.Context, userId uint64, request req
 	newDinner := &model.DinnerModel{
 		LocationId: request.LocationId,
 		HostId:     userId,
+		MaxPeople:  request.MaxPeople,
+		MeetTime:   request.MeetTime,
 	}
 
 	err = d.dinnerRepo.Create(goContext, newDinner)
@@ -219,13 +280,23 @@ func (d DinnerService) CreateDinner(ctx *gin.Context, userId uint64, request req
 	return dto.NewDinnerDto(&result), nil
 }
 
+func (d DinnerService) GetDinnerList(ctx *gin.Context, userId uint64) ([]*dto.DinnerDto, error) {
+	result, err := d.getCurrentDinners(ctx.Request.Context(), userId)
+	if err != nil {
+		return nil, err
+	}
+	return dto.Map(result, func(t model.DinnerModel) *dto.DinnerDto {
+		return dto.NewDinnerDto(&t)
+	}), nil
+}
+
 func (d DinnerService) getCurrentDinners(ctx context.Context, userId uint64) ([]model.DinnerModel, error) {
 	sub := d.participantRepo.
 		Select(query.ParticipantModel.DinnerId.Column().Name).
 		Where(query.ParticipantModel.UserId.Eq(userId))
 	dinners, err := d.dinnerRepo.
 		Where(query.DinnerModel.Status.Neq(model.DINNER_CANCELLED), query.DinnerModel.Status.Neq(model.DINNER_FINISHED)).
-		Where("id IN (?)", sub).
+		Where("id IN (?)", sub).Preload(query.DinnerModel.Participants.Name(), nil).Preload(query.DinnerModel.Host.Name(), nil).Preload(query.DinnerModel.Location.Name(), nil).
 		Find(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -233,6 +304,8 @@ func (d DinnerService) getCurrentDinners(ctx context.Context, userId uint64) ([]
 		}
 		return nil, err
 	}
+
+	logger.Info("get dinners", dinners)
 
 	return dinners, nil
 }
@@ -243,5 +316,6 @@ func NewDinnerService(injector do.Injector) (*DinnerService, error) {
 		participantRepo: do.MustInvoke[*repository.ParticipantRepository](injector),
 		userRepo:        do.MustInvoke[*repository.UserRepository](injector),
 		appConfig:       do.MustInvoke[*config.AppConfig](injector),
+		redisClient:     do.MustInvoke[*redis.Client](injector),
 	}, nil
 }
