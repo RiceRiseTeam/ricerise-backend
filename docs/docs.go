@@ -69,7 +69,7 @@ const docTemplate = `{
             }
         },
         "/admin/comments/:id": {
-            "post": {
+            "patch": {
                 "consumes": [
                     "application/json"
                 ],
@@ -159,7 +159,7 @@ const docTemplate = `{
             }
         },
         "/admin/locations/:id": {
-            "post": {
+            "patch": {
                 "consumes": [
                     "application/json"
                 ],
@@ -309,6 +309,330 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "用户注册成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dinners": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "获取未结束/取消的饭局",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.DinnerDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "创建饭局",
+                "parameters": [
+                    {
+                        "description": "创建饭局请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateDinnerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "修改状态成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.DinnerDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dinners/:id": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "获取饭局详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "饭局ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取饭局详情成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.DinnerDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "修改饭局状态",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "饭局ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新状态请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.UpdateDinnerStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "修改状态成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dinners/:id/code": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "生成饭局邀请码",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "饭局ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "创建邀请码成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.InviteCodeResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dinners/:id/messages": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "饭局内聊天",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "饭局ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "饭局聊天请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.DinnerRoomChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "发送消息成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dinners/:id/participants/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "加入约饭",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "饭局ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "加入饭局请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.JoinDinnerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "加入饭局成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.DinnerDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/dinners/:id/participants/me": {
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dinner"
+                ],
+                "summary": "退出约饭",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "饭局ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "退出约饭成功",
                         "schema": {
                             "$ref": "#/definitions/dto.CommonResponse"
                         }
@@ -561,6 +885,40 @@ const docTemplate = `{
                 "summary": "服务器发送事件",
                 "responses": {}
             }
+        },
+        "/user/me": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "获取当前用户信息",
+                "responses": {
+                    "200": {
+                        "description": "成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.UserDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -575,8 +933,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "integer"
                 },
                 "location": {
                     "$ref": "#/definitions/dto.LocationDto"
@@ -602,10 +959,45 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.DinnerDto": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "host": {
+                    "$ref": "#/definitions/dto.UserDto"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "location": {
+                    "$ref": "#/definitions/dto.LocationDto"
+                },
+                "max": {
+                    "type": "integer"
+                },
+                "meet_time": {
+                    "type": "string"
+                },
+                "participants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UserDto"
+                    }
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.LocationDto": {
             "description": "地点的数据结构",
             "type": "object",
             "properties": {
+                "address": {
+                    "type": "string"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -613,16 +1005,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "integer"
                 },
                 "latitude": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "longitude": {
-                    "type": "number",
-                    "format": "float64"
+                    "type": "number"
                 },
                 "name": {
                     "type": "string"
@@ -637,18 +1026,50 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "integer"
                 },
                 "nickname": {
                     "type": "string"
                 },
                 "permissionLevel": {
-                    "type": "integer",
-                    "format": "int32"
+                    "type": "integer"
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "request.CreateDinnerRequest": {
+            "type": "object",
+            "required": [
+                "location_id",
+                "max_people",
+                "meet_time"
+            ],
+            "properties": {
+                "location_id": {
+                    "type": "integer"
+                },
+                "max_people": {
+                    "type": "integer",
+                    "maximum": 64,
+                    "minimum": 1
+                },
+                "meet_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.DinnerRoomChatRequest": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 1
                 }
             }
         },
@@ -673,6 +1094,30 @@ const docTemplate = `{
                 },
                 "min_lng": {
                     "type": "number"
+                }
+            }
+        },
+        "request.JoinDinnerRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.UpdateDinnerStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "integer",
+                    "enum": [
+                        2,
+                        3,
+                        4
+                    ]
                 }
             }
         },
@@ -832,12 +1277,23 @@ const docTemplate = `{
                 }
             }
         },
+        "response.InviteCodeResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
         "response.UserLoginResponse": {
             "description": "用户登录成功后的返回数据结构",
             "type": "object",
             "properties": {
                 "access_token": {
                     "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/dto.UserDto"
                 }
             }
         }

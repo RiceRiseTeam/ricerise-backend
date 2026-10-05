@@ -89,13 +89,13 @@ func (a AdminHandler) GetLocations(ctx *gin.Context, query querydto.AdminPageQue
 // @Param        id path int true "评论ID"
 // @Param        query query querydto.AdminReviewQuery true "审核参数"
 // @Success      200   {object}  dto.CommonResponse  "审核评论成功"
-// @Router       /admin/comments/:id [post]
+// @Router       /admin/comments/:id [patch]
 func (a AdminHandler) ReviewComment(ctx *gin.Context, query querydto.AdminReviewQuery) (any, error) {
 	commentId, err := dto.GetUrlID(ctx)
 	if err != nil {
 		return dto.Error(apperror.ValidationError), nil
 	}
-	err = a.adminService.ReviewLocation(ctx, commentId, query.Pass)
+	err = a.adminService.ReviewLocation(ctx, commentId, *query.Pass)
 	if err != nil {
 		return nil, err
 	}
@@ -110,13 +110,13 @@ func (a AdminHandler) ReviewComment(ctx *gin.Context, query querydto.AdminReview
 // @Param        id path int true "地点ID"
 // @Param        query query querydto.AdminReviewQuery true "审核参数"
 // @Success      200   {object}  dto.CommonResponse  "审核地点成功"
-// @Router       /admin/locations/:id [post]
+// @Router       /admin/locations/:id [patch]
 func (a AdminHandler) ReviewLocation(ctx *gin.Context, query querydto.AdminReviewQuery) (any, error) {
 	locationId, err := dto.GetUrlID(ctx)
 	if err != nil {
 		return dto.Error(apperror.ValidationError), nil
 	}
-	err = a.adminService.ReviewLocation(ctx, locationId, query.Pass)
+	err = a.adminService.ReviewLocation(ctx, locationId, *query.Pass)
 	if err != nil {
 		return nil, err
 	}

@@ -9,5 +9,5 @@ type AdminPageQuery struct {
 }
 
 type AdminReviewQuery struct {
-	Pass bool `form:"pass" binding:"required"`
+	Pass *bool `form:"pass" binding:"required"`
 }
