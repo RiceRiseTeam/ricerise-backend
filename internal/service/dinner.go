@@ -234,7 +234,7 @@ func (d DinnerService) SendDinnerMessage(ctx *gin.Context, userId uint64, dinner
 		}
 		return err
 	}
-	err = d.broadcastMessage(ctx.Request.Context(), userId, dinnerId, "chat", &dto.ChatSSE{User: dto.NewUserDto(&user), Message: message})
+	err = d.broadcastMessage(ctx.Request.Context(), userId, dinnerId, "chat", &dto.ChatSSE{DinnerId: dinnerId, User: dto.NewUserDto(&user), Message: message})
 	if err != nil {
 		return err
 	}

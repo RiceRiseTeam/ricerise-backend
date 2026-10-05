@@ -9,6 +9,7 @@ type ToastSSE struct {
 // ChatSSE chat事件结构体
 // @Description 用户局内聊天结构体
 type ChatSSE struct {
-	User    *UserDto `json:"user"`
-	Message string   `json:"message"`
+	DinnerId uint64   `json:"dinnerId"`
+	User     *UserDto `json:"user"`
+	Message  string   `json:"message"`
 }
