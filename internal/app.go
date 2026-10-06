@@ -40,6 +40,7 @@ func init() {
 	do.Provide(root, repository.NewLocationRepository)
 	do.Provide(root, repository.NewParticipantRepository)
 	do.Provide(root, repository.NewCommentRepository)
+	do.Provide(root, repository.NewChatMessageRepository)
 
 	do.Provide(root, repository.NewTransactionManager)
 

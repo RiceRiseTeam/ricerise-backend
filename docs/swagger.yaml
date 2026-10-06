@@ -142,10 +142,13 @@ definitions:
         maxLength: 1024
         minLength: 1
         type: string
+      dinnerId:
+        type: integer
       rating:
         type: integer
     required:
     - content
+    - dinnerId
     - rating
     type: object
   request.UploadLocationRequest:
@@ -768,6 +771,31 @@ paths:
       tags:
       - map
   /map/locations:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取地点搜索结果成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.LocationDto'
+                  type: array
+              type: object
+      summary: 搜索地点
+      tags:
+      - map
     post:
       consumes:
       - application/json

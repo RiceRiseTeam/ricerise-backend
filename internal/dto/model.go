@@ -73,6 +73,8 @@ func NewLocationDto(location *model.LocationModel) *LocationDto {
 	}
 }
 
+// DinnerDto 饭局结构
+// @Description 饭局的数据结构
 type DinnerDto struct {
 	ID           uint64       `json:"id"`
 	Location     *LocationDto `json:"location"`
@@ -96,5 +98,23 @@ func NewDinnerDto(dinner *model.DinnerModel) *DinnerDto {
 		Participants: Map(dinner.Participants, func(m model.ParticipantModel) *UserDto {
 			return NewUserDto(&m.User)
 		}),
+	}
+}
+
+// ChatMessageDto AI聊天消息结构
+// @Description AI聊天消息的数据结构
+type ChatMessageDto struct {
+	ID        uint64 `json:"id"`
+	SessionId uint64 `json:"session_id"`
+	Role      string `json:"role"`
+	Content   string `json:"content"`
+}
+
+func NewChatMessageDto(chatMessage *model.ChatMessageModel) *ChatMessageDto {
+	return &ChatMessageDto{
+		ID:        chatMessage.ID,
+		SessionId: chatMessage.SessionId,
+		Role:      chatMessage.Role,
+		Content:   chatMessage.Content,
 	}
 }

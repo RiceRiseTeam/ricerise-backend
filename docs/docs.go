@@ -845,6 +845,49 @@ const docTemplate = `{
             }
         },
         "/map/locations": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "map"
+                ],
+                "summary": "搜索地点",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取地点搜索结果成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.LocationDto"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
             "post": {
                 "consumes": [
                     "application/json"
@@ -1126,6 +1169,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "content",
+                "dinnerId",
                 "rating"
             ],
             "properties": {
@@ -1133,6 +1177,9 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 1024,
                     "minLength": 1
+                },
+                "dinnerId": {
+                    "type": "integer"
                 },
                 "rating": {
                     "type": "integer"

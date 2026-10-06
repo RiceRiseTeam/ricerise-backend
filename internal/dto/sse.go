@@ -13,3 +13,9 @@ type ChatSSE struct {
 	User     *UserDto `json:"user"`
 	Message  string   `json:"message"`
 }
+
+type AgentSSE struct {
+	SessionId uint64 `json:"sessionId"`
+	Type      string `json:"type"`
+	Message   string `json:"message"`
+}
