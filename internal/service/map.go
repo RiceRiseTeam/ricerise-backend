@@ -20,10 +20,11 @@ import (
 )
 
 type MapService struct {
-	appConfig          *config.AppConfig
-	locationRepository *repository.LocationRepository
-	commentRepository  *repository.CommentRepository
-	authMiddleware     *middleware.AuthMiddleware
+	appConfig             *config.AppConfig
+	locationRepository    *repository.LocationRepository
+	commentRepository     *repository.CommentRepository
+	participantRepository *repository.ParticipantRepository
+	authMiddleware        *middleware.AuthMiddleware
 }
 
 func (m MapService) DeleteComment(ctx *gin.Context, id uint64) error {
@@ -112,6 +113,10 @@ func (m MapService) fetchComment(ctx context.Context, id uint64) (*model.Comment
 	return &comment, nil
 }
 
+func (m MapService) SearchLocation(ctx *gin.Context) {
+
+}
+
 func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) (*dto.CommentDto, error) {
 	userInfo := m.authMiddleware.GetUserInfo(ctx)
 	if userInfo == nil {
@@ -127,11 +132,26 @@ func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommen
 		return nil, err
 	}
 
+	participant, err := m.participantRepository.
+		Where(query.ParticipantModel.DinnerId.Eq(request.DinnerId)).
+		Where(query.ParticipantModel.UserId.Eq(userInfo.UserId)).Preload(query.ParticipantModel.Dinner.Name(), nil).First(goContext)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.AccessNoFoundError
+		}
+		return nil, err
+	}
+
+	if participant.Dinner.ID != request.DinnerId {
+		return nil, apperror.NoPermissionError
+	}
+
 	newComment := &model.CommentModel{
 		Rating:     request.Rating,
 		Content:    request.Content,
 		UserId:     userInfo.UserId,
 		LocationId: location.ID,
+		DinnerId:   &request.DinnerId,
 	}
 	err = m.commentRepository.Create(goContext, newComment)
 	if err != nil {
@@ -201,12 +221,14 @@ func (m MapService) GetComments(ctx *gin.Context, id uint64, request querydto.Ma
 func NewMapService(injector do.Injector) (*MapService, error) {
 	commentRepository := do.MustInvoke[*repository.CommentRepository](injector)
 	locationRepository := do.MustInvoke[*repository.LocationRepository](injector)
+	participantRepository := do.MustInvoke[*repository.ParticipantRepository](injector)
 	auth := do.MustInvoke[*middleware.AuthMiddleware](injector)
 	appConfig := do.MustInvoke[*config.AppConfig](injector)
 	return &MapService{
-		appConfig:          appConfig,
-		authMiddleware:     auth,
-		locationRepository: locationRepository,
-		commentRepository:  commentRepository,
+		appConfig:             appConfig,
+		authMiddleware:        auth,
+		locationRepository:    locationRepository,
+		commentRepository:     commentRepository,
+		participantRepository: participantRepository,
 	}, nil
 }
