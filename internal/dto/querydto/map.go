@@ -9,3 +9,7 @@ type MapLocationCommentsQuery struct {
 	OrderedBy string     `form:"ordered_by,default=time" binding:"omitempty,oneof=time rank"`
 	PageSize  int        `form:"page_size,default=10"`
 }
+
+type MapLocationSearchQuery struct {
+	Query string `form:"q" binding:"required"`
+}

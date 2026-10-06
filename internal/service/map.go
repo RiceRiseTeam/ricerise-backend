@@ -3,16 +3,25 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"ricerise/internal/apperror"
 	"ricerise/internal/config"
 	"ricerise/internal/dal/query"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/querydto"
 	"ricerise/internal/dto/request"
+	"ricerise/internal/logger"
 	"ricerise/internal/middleware"
 	"ricerise/internal/model"
 	"ricerise/internal/repository"
+	"runtime/debug"
+	"strconv"
+	"strings"
 
+	"github.com/Wood-Q/Eino-pgvector/indexer"
+	"github.com/Wood-Q/Eino-pgvector/retriever"
+	"github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/cloudwego/eino/schema"
 	"github.com/gin-gonic/gin"
 	"github.com/restayway/gogis"
 	"github.com/samber/do/v2"
@@ -25,6 +34,9 @@ type MapService struct {
 	commentRepository     *repository.CommentRepository
 	participantRepository *repository.ParticipantRepository
 	authMiddleware        *middleware.AuthMiddleware
+	indexer               *indexer.Indexer
+	retriever             *retriever.Retriever
+	chatModel             *openai.ChatModel
 }
 
 func (m MapService) DeleteComment(ctx *gin.Context, id uint64) error {
@@ -113,8 +125,132 @@ func (m MapService) fetchComment(ctx context.Context, id uint64) (*model.Comment
 	return &comment, nil
 }
 
-func (m MapService) SearchLocation(ctx *gin.Context) {
+func (m MapService) SearchLocation(ctx *gin.Context, input string) ([]model.LocationModel, error) {
+	goContext := ctx.Request.Context()
+	results, err := m.retriever.Retrieve(goContext, input, &retriever.SearchOptions{Limit: 10})
+	if err != nil {
+		return nil, err
+	}
 
+	ids := make([]uint64, 0, len(results))
+	for _, document := range results {
+		id, err := strconv.ParseUint(document.ID, 10, 64)
+		if err != nil {
+			continue
+		}
+		ids = append(ids, id)
+	}
+
+	if len(ids) == 0 {
+		return []model.LocationModel{}, nil
+	}
+
+	locations, err := m.locationRepository.Where("id IN (?)", ids).Find(goContext)
+	if err != nil {
+		return nil, err
+	}
+
+	indexMap := make(map[uint64]model.LocationModel, len(locations))
+	for _, loc := range locations {
+		indexMap[loc.ID] = loc
+	}
+	orderedLocations := make([]model.LocationModel, 0, len(ids))
+	for _, id := range ids {
+		if d, ok := indexMap[id]; ok {
+			orderedLocations = append(orderedLocations, d)
+		}
+	}
+
+	return orderedLocations, nil
+}
+
+func (m MapService) updateDocument(locationId uint64) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("error while updating document: panic=%v\\nstack:\\n%s\\n ", r, string(debug.Stack()))
+		}
+	}()
+
+	goContext := context.Background()
+	location, err := m.locationRepository.Where(query.LocationModel.ID.Eq(locationId)).First(goContext)
+	if err != nil {
+		logger.Error("error when updating document" + err.Error())
+		return
+	}
+
+	comments, err := m.commentRepository.Where(query.CommentModel.ID.Eq(locationId)).Limit(10).Find(goContext)
+	if err != nil {
+		logger.Error("error when updating document" + err.Error())
+		return
+	}
+
+	summary, err := m.generateSummary(goContext, comments)
+	if err != nil {
+		logger.Error("error when updating document" + err.Error())
+		return
+	}
+
+	err = m.saveEmbeddingDocument(goContext, &location, summary)
+	if err != nil {
+		logger.Error("error when updating document" + err.Error())
+	}
+}
+
+func (m MapService) saveEmbeddingDocument(ctx context.Context, location *model.LocationModel, summary string) error {
+	var builder strings.Builder
+	builder.WriteString("[饭店名称]: ")
+	builder.WriteString(location.Name)
+	builder.WriteString("\n[饭店地址]: ")
+	builder.WriteString(location.Address)
+	builder.WriteString("\n[饭店描述]: ")
+	builder.WriteString(location.Description)
+	builder.WriteString("\n[评论总结]: ")
+	if summary != "" {
+		builder.WriteString(summary)
+	} else {
+		builder.WriteString("暂无评论")
+	}
+
+	content := builder.String()
+	docs := []*schema.Document{
+		{
+			ID:      strconv.FormatUint(location.ID, 10),
+			Content: content,
+		},
+	}
+
+	_, err := m.indexer.Store(ctx, docs)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m MapService) generateSummary(ctx context.Context, comments []model.CommentModel) (string, error) {
+	systemPrompt := `你是一个专业的餐饮评论分析助手。你的任务是把顾客评论总结成一段结构化的中文摘要。
+		输出要求：
+		- 长度控制在 150 字以内
+		- 重点覆盖：口味、环境、服务、性价比、适合场景（如约会/聚餐/家庭）
+		- 如果评论中反复提到某道菜，要特别指出
+		- 只输出摘要正文，不要任何额外解释或前缀`
+
+	var builder strings.Builder
+	for _, comment := range comments {
+		builder.WriteString(comment.Content)
+	}
+
+	userPrompt := fmt.Sprintf(`请把下面这家饭店的顾客评论总结成一段中文描述：%s`, builder.String())
+
+	msg, err := m.chatModel.Generate(ctx, []*schema.Message{
+		schema.SystemMessage(systemPrompt),
+		schema.UserMessage(userPrompt),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(msg.Content), nil
 }
 
 func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommentRequest) (*dto.CommentDto, error) {
@@ -161,6 +297,8 @@ func (m MapService) UploadComment(ctx *gin.Context, request request.UploadCommen
 		return nil, err
 	}
 
+	go m.updateDocument(location.ID)
+
 	return dto.NewCommentDto(newComment), nil
 }
 
@@ -188,7 +326,7 @@ func (m MapService) UploadLocation(ctx *gin.Context, request request.UploadLocat
 		}
 		return nil, err
 	}
-
+	go m.updateDocument(newLocation.ID)
 	return dto.NewLocationDto(newLocation), nil
 }
 
@@ -219,16 +357,14 @@ func (m MapService) GetComments(ctx *gin.Context, id uint64, request querydto.Ma
 }
 
 func NewMapService(injector do.Injector) (*MapService, error) {
-	commentRepository := do.MustInvoke[*repository.CommentRepository](injector)
-	locationRepository := do.MustInvoke[*repository.LocationRepository](injector)
-	participantRepository := do.MustInvoke[*repository.ParticipantRepository](injector)
-	auth := do.MustInvoke[*middleware.AuthMiddleware](injector)
-	appConfig := do.MustInvoke[*config.AppConfig](injector)
 	return &MapService{
-		appConfig:             appConfig,
-		authMiddleware:        auth,
-		locationRepository:    locationRepository,
-		commentRepository:     commentRepository,
-		participantRepository: participantRepository,
+		appConfig:             do.MustInvoke[*config.AppConfig](injector),
+		authMiddleware:        do.MustInvoke[*middleware.AuthMiddleware](injector),
+		locationRepository:    do.MustInvoke[*repository.LocationRepository](injector),
+		commentRepository:     do.MustInvoke[*repository.CommentRepository](injector),
+		participantRepository: do.MustInvoke[*repository.ParticipantRepository](injector),
+		indexer:               do.MustInvoke[*indexer.Indexer](injector),
+		retriever:             do.MustInvoke[*retriever.Retriever](injector),
+		chatModel:             do.MustInvoke[*openai.ChatModel](injector),
 	}, nil
 }

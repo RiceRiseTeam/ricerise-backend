@@ -23,12 +23,30 @@ func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
 	api := router.Group("/map")
 	api.Use(m.authMiddleware.CreateHandler(m.authMiddleware.UserLevel))
 
+	api.GET("/locations", dto.RouteWithDto(m.SearchLocation))
 	api.POST("/locations", dto.RouteWithDto(m.UploadLocation))
 	api.POST("/location/view", dto.RouteWithDto(m.GetLocationsInRange))
 	api.POST("/location/:id/comments", dto.RouteWithDto(m.UploadComment))
 
 	api.GET("/location/:id", dto.RouteWithDto(m.GetLocationDetail))
 	api.GET("/location/:id/comments", dto.RouteWithDto(m.GetComments))
+}
+
+// SearchLocation
+// @Summary      搜索地点
+// @Tags         map
+// @Accept       json
+// @Produce      json
+// @Param        query query querydto.MapLocationSearchQuery true "查询参数"
+// @Success      200   {object}  dto.CommonResponse{data=[]dto.LocationDto}  "获取地点搜索结果成功"
+// @Router       /map/locations [get]
+func (m MapHandler) SearchLocation(ctx *gin.Context, request querydto.MapLocationSearchQuery) (any, error) {
+	data, err := m.mapService.SearchLocation(ctx, request.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.Success(data), nil
 }
 
 // GetComments
