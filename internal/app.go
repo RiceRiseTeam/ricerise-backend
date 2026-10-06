@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"ricerise/internal/ai"
 	"ricerise/internal/cache"
 	"ricerise/internal/config"
 	"ricerise/internal/database"
@@ -28,6 +29,11 @@ func init() {
 	do.Provide(root, config.New)
 	do.Provide(root, database.NewPostgres)
 	do.Provide(root, cache.NewRedis)
+
+	do.Provide(root, ai.NewEmbedder)
+	do.Provide(root, ai.NewChatModel)
+	do.Provide(root, ai.NewIndexer)
+	do.Provide(root, ai.NewRetriever)
 	// Repo 层
 	do.Provide(root, repository.NewUserRepository)
 	do.Provide(root, repository.NewDinnerRepository)
@@ -43,12 +49,14 @@ func init() {
 	do.Provide(root, service.NewUserService)
 	do.Provide(root, service.NewAdminService)
 	do.Provide(root, service.NewMapService)
+	do.Provide(root, service.NewAgentService)
 
 	// Handler 层
 	do.Provide(root, handler.NewDinnerHandler)
 	do.Provide(root, handler.NewUserHandler)
 	do.Provide(root, handler.NewAdminHandler)
 	do.Provide(root, handler.NewMapHandler)
+	do.Provide(root, handler.NewAgentHandler)
 
 	// 中间件
 	do.Provide(root, middleware.NewErrorMiddleware)

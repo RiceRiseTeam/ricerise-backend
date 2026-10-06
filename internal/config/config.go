@@ -22,6 +22,10 @@ type AppConfig struct {
 
 	AIBaseURL string `mapstructure:"AI_BASE_URL" validate:"required"`
 	AIToken   string `mapstructure:"AI_TOKEN"    validate:"required"`
+	AIModel   string `mapstructure:"AI_MODEL"    validate:"required"`
+
+	EmbeddingToken string `mapstructure:"EMBEDDING_TOKEN" validate:"required"`
+	EmbeddingModel string `mapstructure:"EMBEDDING_MODEL" validate:"required"`
 
 	JWTSecret          string `mapstructure:"JWT_SECRET" validate:"required,min=32"`
 	AccessTokenExpire  int    `mapstructure:"ACCESS_TOKEN_EXPIRE" validate:"required"`

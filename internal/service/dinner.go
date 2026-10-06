@@ -9,15 +9,14 @@ import (
 	"ricerise/internal/dal/query"
 	"ricerise/internal/dto"
 	"ricerise/internal/dto/request"
-	"ricerise/internal/logger"
 	"ricerise/internal/model"
 	"ricerise/internal/repository"
 	"strconv"
 	"time"
-	"uuid"
 
 	sse "github.com/dan-sherwin/go-sse"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
 	"gorm.io/gorm"
@@ -343,8 +342,6 @@ func (d DinnerService) getCurrentDinners(ctx context.Context, userId uint64) ([]
 		}
 		return nil, err
 	}
-
-	logger.Info("get dinners", dinners)
 
 	return dinners, nil
 }
