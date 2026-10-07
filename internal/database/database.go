@@ -52,6 +52,7 @@ func NewPostgres(injector do.Injector) (*gorm.DB, error) {
 		&model.CommentModel{},
 		&model.DinnerModel{},
 		&model.ParticipantModel{},
+		&model.ChatMessageModel{},
 	)
 	if err != nil {
 		panic("failed to auto migrate mysql model: " + err.Error())

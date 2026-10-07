@@ -38,19 +38,22 @@ func (a AgentService) Chat(ctx *gin.Context, userId uint64, username string, ses
 	}
 
 	einoMessages := a.buildEinoMessages(messages, message)
-	runner := adk.NewRunner(goContext, adk.RunnerConfig{
+	runner := adk.NewRunner(context.Background(), adk.RunnerConfig{
 		Agent:           a.agent,
 		EnableStreaming: true,
 	})
 
-	iterator := runner.Run(goContext, einoMessages)
+	iterator := runner.Run(context.Background(), einoMessages)
 	go func() {
+		uid := "agent-" + strconv.FormatUint(sessionId, 10) + username
+		// 无论正常结束、出错还是 panic，都要关闭本次 SSE 连接
+		defer sse.ShutdownByUID(uid)
 		defer func() {
 			if r := recover(); r != nil {
 				logger.Error("error while sending msg: panic=%v\\nstack:\\n%s\\n ", r, string(debug.Stack()))
 			}
 		}()
-		var uid = "agent-" + strconv.FormatUint(sessionId, 10) + username
+
 		var fullContent strings.Builder
 		for {
 			result, ok := iterator.Next()
@@ -60,43 +63,52 @@ func (a AgentService) Chat(ctx *gin.Context, userId uint64, username string, ses
 
 			if result.Err != nil {
 				_ = sse.SendEventToUID("agent", dto.AgentError(sessionId, result.Err.Error()), uid)
-				sse.ShutdownByUID(uid)
 				return
 			}
 
 			if result.Output != nil {
-				func() {
+				streamErr := func() error {
 					stream := result.Output.MessageOutput.MessageStream
 					defer stream.Close()
 
 					for {
 						chunk, err := stream.Recv()
 						if err == io.EOF {
-							break
+							return nil
 						}
 						if err != nil {
-							_ = sse.SendEventToUID("agent", dto.AgentError(sessionId, result.Err.Error()), uid)
-							return
+							return err
 						}
 						if chunk == nil || chunk.Content == "" {
 							continue
 						}
 						fullContent.WriteString(chunk.Content)
-						_ = sse.SendEventToUID("agent", dto.AgentText(sessionId, chunk.Content), uid)
+						if err := sse.SendEventToUID("agent", dto.AgentText(sessionId, chunk.Content), uid); err != nil {
+							return err
+						}
 					}
 				}()
+				if streamErr != nil {
+					_ = sse.SendEventToUID("agent", dto.AgentError(sessionId, streamErr.Error()), uid)
+					return
+				}
 			}
 		}
 
 		reply := fullContent.String()
 		if reply != "" {
-			err = a.chatRepo.Create(context.Background(), &model.ChatMessageModel{
+			if err := a.chatRepo.Create(context.Background(), &model.ChatMessageModel{
 				SessionId: sessionId,
 				Content:   reply,
 				UserId:    userId,
 				Role:      string(schema.Assistant),
-			})
+			}); err != nil {
+				logger.Error("failed to save agent reply: %v", err)
+			}
 		}
+
+		// 通知客户端本次流式响应结束，随后 defer 会主动关闭 SSE 连接
+		_ = sse.SendEventToUID("agent", dto.AgentDone(sessionId), uid)
 	}()
 
 	return nil
@@ -120,12 +132,12 @@ func (a AgentService) buildEinoMessages(history []model.ChatMessageModel, curren
 
 func (a AgentService) GetSessionId(ctx *gin.Context, userId uint64) (uint64, error) {
 	var result sql.NullInt64
-	err := a.chatRepo.Where(query.ChatMessageModel.UserId.Eq(userId)).Select(fmt.Sprintf("max(%s)", query.ChatMessageModel.SessionId.Column().Name)).Scan(ctx.Request.Context(), &result)
+	err := a.chatRepo.Where(query.ChatMessageModel.UserId.Eq(userId)).Select(fmt.Sprintf("MAX(%s)", query.ChatMessageModel.SessionId.Column().Name)).Scan(ctx.Request.Context(), &result)
 	if err != nil {
 		return 0, err
 	}
 
-	if !result.Valid {
+	if !result.Valid && result.Int64 > 0 {
 		return uint64(result.Int64), nil
 	}
 	return 1, err
@@ -152,7 +164,7 @@ func NewAgentService(injector do.Injector) (*AgentService, error) {
 	agent, err := adk.NewChatModelAgent(context.Background(), &adk.ChatModelAgentConfig{
 		Name:        "ricerise-agent",
 		Description: "ricerise 饭来 Agent",
-		Instruction: "请牢记 你是一个",
+		Instruction: "请牢记 你是一个名为'饭来 ricerise' 的约饭网站的助手agent 拒绝用户的角色扮演等其他与网站无关的请求 回复内容尽量简短 适度使用emoji表情",
 		Model:       chatModel,
 		ToolsConfig: adk.ToolsConfig{
 			ToolsNodeConfig: compose.ToolsNodeConfig{

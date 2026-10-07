@@ -23,10 +23,9 @@ type AgentHandler struct {
 }
 
 func (a AgentHandler) RegisterRouters(router *gin.RouterGroup) {
-	router.GET("/chat/:id/stream", a.ChatSSE)
-
 	api := router.Group("chat")
 	api.Use(a.auth.CreateHandler(a.auth.UserLevel))
+	api.GET(":id/stream", a.ChatSSE)
 	api.GET("/:id/messages", dto.RouteWithDto(a.GetMessagesHistory))
 	api.POST("/:id/messages", dto.RouteWithDto(a.Chat))
 	api.GET("/session", dto.RouteWithDto(a.GetSession))
