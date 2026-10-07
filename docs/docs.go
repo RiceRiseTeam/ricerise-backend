@@ -316,6 +316,124 @@ const docTemplate = `{
                 }
             }
         },
+        "/chat/:id/messages": {
+            "get": {
+                "tags": [
+                    "agent"
+                ],
+                "summary": "获取对话历史",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "sessionId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "获取对话历史成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.ChatMessageDto"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "agent"
+                ],
+                "summary": "向agent发送消息",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "sessionId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Agent消息请求体",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.AgentChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "发送消息成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/chat/:id/stream": {
+            "get": {
+                "tags": [
+                    "agent"
+                ],
+                "summary": "服务器发送Agent 返回的事件 每次agent发送完消息后都会关闭",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "sessionId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/chat/session": {
+            "get": {
+                "tags": [
+                    "agent"
+                ],
+                "summary": "新对话获取新的SessionId",
+                "responses": {
+                    "200": {
+                        "description": "获取SessionId成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.CommonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.AgentSessionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/dinners": {
             "get": {
                 "consumes": [
@@ -965,6 +1083,24 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.ChatMessageDto": {
+            "description": "AI聊天消息的数据结构",
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.CommentDto": {
             "description": "评论的数据结构",
             "type": "object",
@@ -1003,6 +1139,7 @@ const docTemplate = `{
             }
         },
         "dto.DinnerDto": {
+            "description": "饭局的数据结构",
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -1079,6 +1216,19 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "request.AgentChatRequest": {
+            "type": "object",
+            "required": [
+                "input"
+            ],
+            "properties": {
+                "input": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "minLength": 1
                 }
             }
         },
@@ -1320,6 +1470,14 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "total_user": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.AgentSessionResponse": {
+            "type": "object",
+            "properties": {
+                "session_id": {
                     "type": "integer"
                 }
             }

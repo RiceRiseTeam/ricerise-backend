@@ -1,5 +1,17 @@
 basePath: /api/v1
 definitions:
+  dto.ChatMessageDto:
+    description: AI聊天消息的数据结构
+    properties:
+      content:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+      session_id:
+        type: integer
+    type: object
   dto.CommentDto:
     description: 评论的数据结构
     properties:
@@ -26,6 +38,7 @@ definitions:
         type: string
     type: object
   dto.DinnerDto:
+    description: 饭局的数据结构
     properties:
       createdAt:
         type: string
@@ -77,6 +90,15 @@ definitions:
         type: integer
       username:
         type: string
+    type: object
+  request.AgentChatRequest:
+    properties:
+      input:
+        maxLength: 256
+        minLength: 1
+        type: string
+    required:
+    - input
     type: object
   request.CreateDinnerRequest:
     properties:
@@ -249,6 +271,11 @@ definitions:
       total_location:
         type: integer
       total_user:
+        type: integer
+    type: object
+  response.AgentSessionResponse:
+    properties:
+      session_id:
         type: integer
     type: object
   response.InviteCodeResponse:
@@ -451,6 +478,77 @@ paths:
       summary: 用户注册
       tags:
       - user
+  /chat/:id/messages:
+    get:
+      parameters:
+      - description: sessionId
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: 获取对话历史成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.ChatMessageDto'
+                  type: array
+              type: object
+      summary: 获取对话历史
+      tags:
+      - agent
+    post:
+      parameters:
+      - description: sessionId
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Agent消息请求体
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.AgentChatRequest'
+      responses:
+        "200":
+          description: 发送消息成功
+          schema:
+            $ref: '#/definitions/dto.CommonResponse'
+      summary: 向agent发送消息
+      tags:
+      - agent
+  /chat/:id/stream:
+    get:
+      parameters:
+      - description: sessionId
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses: {}
+      summary: 服务器发送Agent 返回的事件 每次agent发送完消息后都会关闭
+      tags:
+      - agent
+  /chat/session:
+    get:
+      responses:
+        "200":
+          description: 获取SessionId成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.CommonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.AgentSessionResponse'
+              type: object
+      summary: 新对话获取新的SessionId
+      tags:
+      - agent
   /dinners:
     get:
       consumes:
