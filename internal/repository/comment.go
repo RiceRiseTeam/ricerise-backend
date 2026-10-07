@@ -16,10 +16,7 @@ type CommentRepository struct {
 
 func (l CommentRepository) FindNotReviewedOrderedByCreatedAt(ctx context.Context, pageSize int, startId *uint64, startTime *time.Time) ([]*model.CommentModel, error) {
 	var result []*model.CommentModel
-	var reviewed = false
-	query := l.db.WithContext(ctx).Where(&model.CommentModel{
-		Reviewed: &reviewed,
-	})
+	query := l.db.WithContext(ctx).Where("reviewed is null")
 
 	if startId != nil && startTime != nil {
 		query = query.Where("(created_at, id) < (?, ?)", startTime, startId)

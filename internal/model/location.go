@@ -13,7 +13,7 @@ type LocationModel struct {
 	Name          string         `gorm:"not null;size:128"`
 	Address       string         `gorm:"not null;size:256"`
 	Location      gogis.Point    `gorm:"type:geometry(Point,4326);not null"`
-	Reviewed      *bool          `gorm:"not null;default:false"`
+	Reviewed      *bool          `gorm:""`
 	UserId        uint64         `gorm:"index;not null"`
 	User          UserModel      `gorm:"foreignkey:UserId"`
 	Description   string         `gorm:"type:text;not null"`

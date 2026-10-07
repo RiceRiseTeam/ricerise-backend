@@ -26,10 +26,7 @@ func (l LocationRepository) WithTx(tx *gorm.DB) *LocationRepository {
 
 func (l LocationRepository) FindNotReviewedOrderedByCreatedAt(ctx context.Context, pageSize int, startId *uint64, startTime *time.Time) ([]*model.LocationModel, error) {
 	var result []*model.LocationModel
-	var reviewed = false
-	where := l.db.WithContext(ctx).Where(&model.LocationModel{
-		Reviewed: &reviewed,
-	})
+	where := l.db.WithContext(ctx).Where("reviewed is null")
 
 	if startId != nil && startTime != nil {
 		where = where.Where("(created_at, id) < (?, ?)", startTime, startId)
