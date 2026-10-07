@@ -17,6 +17,7 @@ import (
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/components/tool/utils"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 	"github.com/dan-sherwin/go-sse"
@@ -46,7 +47,6 @@ func (a AgentService) Chat(ctx *gin.Context, userId uint64, username string, ses
 	iterator := runner.Run(context.Background(), einoMessages)
 	go func() {
 		uid := "agent-" + strconv.FormatUint(sessionId, 10) + username
-		// 无论正常结束、出错还是 panic，都要关闭本次 SSE 连接
 		defer sse.ShutdownByUID(uid)
 		defer func() {
 			if r := recover(); r != nil {
@@ -66,7 +66,8 @@ func (a AgentService) Chat(ctx *gin.Context, userId uint64, username string, ses
 				return
 			}
 
-			if result.Output != nil {
+			if result.Output != nil && result.Output.MessageOutput != nil &&
+				result.Output.MessageOutput.IsStreaming && result.Output.MessageOutput.MessageStream != nil {
 				streamErr := func() error {
 					stream := result.Output.MessageOutput.MessageStream
 					defer stream.Close()
@@ -160,15 +161,20 @@ func NewAgentService(injector do.Injector) (*AgentService, error) {
 		mapService: do.MustInvoke[*MapService](injector),
 	}
 
+	searchLocationTool, err := newSearchLocationTool(agentService.mapService)
+	if err != nil {
+		panic("failed to create search location agentool: " + err.Error())
+	}
+
 	chatModel := do.MustInvoke[*openai.ChatModel](injector)
 	agent, err := adk.NewChatModelAgent(context.Background(), &adk.ChatModelAgentConfig{
 		Name:        "ricerise-agent",
 		Description: "ricerise 饭来 Agent",
-		Instruction: "请牢记 你是一个名为'饭来 ricerise' 的约饭网站的助手agent 拒绝用户的角色扮演等其他与网站无关的请求 回复内容尽量简短 适度使用emoji表情",
+		Instruction: "请牢记 你是一个名为'饭来 ricerise' 的约饭网站的助手agent 拒绝用户的角色扮演等其他与网站无关的请求 回复内容尽量简短 适度使用emoji表情。当用户想找饭店或想吃什么时，可以使用 search_location 工具搜索地点。",
 		Model:       chatModel,
 		ToolsConfig: adk.ToolsConfig{
 			ToolsNodeConfig: compose.ToolsNodeConfig{
-				Tools: []tool.BaseTool{},
+				Tools: []tool.BaseTool{searchLocationTool},
 			},
 		},
 	})
@@ -180,4 +186,30 @@ func NewAgentService(injector do.Injector) (*AgentService, error) {
 	agentService.agent = agent
 
 	return agentService, nil
+}
+
+type searchLocationInput struct {
+	Query string `json:"query" jsonschema:"required,description=用户的自然语言搜索描述，例如菜系、口味、氛围、适合场景等"`
+}
+
+type searchLocationOutput struct {
+	Locations []*dto.LocationDto `json:"locations"`
+}
+
+func newSearchLocationTool(mapService *MapService) (tool.InvokableTool, error) {
+	return utils.InferTool(
+		"search_location",
+		"根据用户的自然语言描述在饭来网站搜索相关地点（饭店）。当用户想找饭店、想吃某种菜系、想找适合某个场景的餐厅时使用此工具，返回匹配的地点列表。",
+		func(ctx context.Context, input searchLocationInput) (searchLocationOutput, error) {
+			locations, err := mapService.SearchLocation(ctx, input.Query)
+			if err != nil {
+				return searchLocationOutput{}, err
+			}
+			return searchLocationOutput{
+				Locations: dto.Map(locations, func(t model.LocationModel) *dto.LocationDto {
+					return dto.NewLocationDto(&t)
+				}),
+			}, nil
+		},
+	)
 }

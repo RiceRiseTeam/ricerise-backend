@@ -41,7 +41,7 @@ func (m MapHandler) RegisterRouters(router *gin.RouterGroup) {
 // @Success      200   {object}  dto.CommonResponse{data=[]dto.LocationDto}  "获取地点搜索结果成功"
 // @Router       /map/locations [get]
 func (m MapHandler) SearchLocation(ctx *gin.Context, request querydto.MapLocationSearchQuery) (any, error) {
-	data, err := m.mapService.SearchLocation(ctx, request.Query)
+	data, err := m.mapService.SearchLocation(ctx.Request.Context(), request.Query)
 	if err != nil {
 		return nil, err
 	}

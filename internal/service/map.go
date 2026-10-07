@@ -125,8 +125,7 @@ func (m MapService) fetchComment(ctx context.Context, id uint64) (*model.Comment
 	return &comment, nil
 }
 
-func (m MapService) SearchLocation(ctx *gin.Context, input string) ([]model.LocationModel, error) {
-	goContext := ctx.Request.Context()
+func (m MapService) SearchLocation(goContext context.Context, input string) ([]model.LocationModel, error) {
 	results, err := m.retriever.Retrieve(goContext, input, &retriever.SearchOptions{Limit: 10})
 	if err != nil {
 		return nil, err
@@ -339,7 +338,7 @@ func (m MapService) GetComments(ctx *gin.Context, id uint64, request querydto.Ma
 		return nil, apperror.AccessNoFoundError
 	}
 
-	sql := m.commentRepository.Where(query.CommentModel.LocationId.Eq(id)).Preload(query.CommentModel.User.Name(), nil)
+	sql := m.commentRepository.Where(query.CommentModel.LocationId.Eq(id), query.CommentModel.Reviewed.Eq(true)).Preload(query.CommentModel.User.Name(), nil)
 
 	if request.OrderedBy == "time" {
 		if request.StartId != nil {
