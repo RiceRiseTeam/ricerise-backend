@@ -184,10 +184,13 @@ func (m MapService) updateDocument(locationId uint64) {
 		return
 	}
 
-	summary, err := m.generateSummary(goContext, comments)
-	if err != nil {
-		logger.Error("error when updating document" + err.Error())
-		return
+	var summary string
+	if len(comments) > 0 {
+		summary, err = m.generateSummary(goContext, comments)
+		if err != nil {
+			logger.Error("error when updating document" + err.Error())
+			return
+		}
 	}
 
 	err = m.saveEmbeddingDocument(goContext, &location, summary)

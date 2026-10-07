@@ -19,3 +19,26 @@ type AgentSSE struct {
 	Type      string `json:"type"`
 	Message   string `json:"message"`
 }
+
+func AgentDone(sessionId uint64) *AgentSSE {
+	return &AgentSSE{
+		SessionId: sessionId,
+		Type:      "done",
+	}
+}
+
+func AgentText(sessionId uint64, message string) *AgentSSE {
+	return &AgentSSE{
+		SessionId: sessionId,
+		Type:      "text",
+		Message:   message,
+	}
+}
+
+func AgentError(sessionId uint64, message string) *AgentSSE {
+	return &AgentSSE{
+		SessionId: sessionId,
+		Type:      "error",
+		Message:   message,
+	}
+}
